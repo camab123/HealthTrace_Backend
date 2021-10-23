@@ -5,6 +5,15 @@ name = "pypi"
 
 [packages]
 django = "*"
+psycopg2-binary = "*"
+djangorestframework = "*"
+django-cors-headers = "*"
+aiohttp = "*"
+asyncio = "*"
+pandas = "*"
+beautifulsoup4 = "*"
+requests = "*"
+datetime = "*"
 
 [dev-packages]
 

@@ -5,11 +5,11 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 #Set work directory 
-WORKDIR /POLICE_AUCTION
+WORKDIR /code
 
 #Install dependencies
-COPY Pipfile Pipfile.lock /POLICE_AUCTION/
+COPY Pipfile Pipfile.lock /code/
 RUN pip3 install pipenv && pipenv install --system
 
 #Copy project
-COPY . /POLICE_AUCTION
+COPY . /code

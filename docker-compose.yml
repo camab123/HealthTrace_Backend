@@ -3,8 +3,22 @@ version: '3.9'
 services:
   web:
     build: .
-    command: python3 /POLICE_AUCTION/manage.py runserver 0.0.0.0:8000
+    command: python3 /code/manage.py runserver 0.0.0.0:8000
     volumes:
-      - .:/POLICE_AUCTION
+      - .:/code
     ports:
       - 8000:8000
+    depends_on:
+      - db
+  db:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=database1
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+  
+volumes:
+  postgres_data:
+
