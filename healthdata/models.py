@@ -21,8 +21,8 @@ class Doctor(models.Model):
     def __str__(self):
         return str(self.FirstName) + " " + str(self.MiddleName) + " " + str(self.LastName)
 
-class Manafacturer(models.Model):
-    ManafacturerId = models.BigIntegerField(primary_key=True)
+class Manufacturer(models.Model):
+    ManufacturerId = models.BigIntegerField(primary_key=True)
     Name = models.CharField(max_length=100, null=True)
     State = models.CharField(max_length=100, null=True)
     Country = models.CharField(max_length=100, null=True)
@@ -35,7 +35,7 @@ class Manafacturer(models.Model):
 class Transaction(models.Model):
     TransactionId = models.IntegerField(primary_key=True)
     Doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE)
-    Manafacturer = models.ForeignKey(Manafacturer, on_delete=models.CASCADE)
+    Manafacturer = models.ForeignKey(Manufacturer, on_delete=models.CASCADE)
     Type_Product = models.CharField(max_length=100, null=True)
     Category = models.CharField(max_length=100, null=True)
     Name = models.CharField(max_length=100, null=True)

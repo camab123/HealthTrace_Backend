@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand, CommandError
-from healthdata.models import Doctor, Manafacturer, Transaction
+from healthdata.models import Doctor, Manufacturer, Transaction
 import csv
 import pandas as pd
 from datetime import datetime
@@ -37,10 +37,10 @@ class Command(BaseCommand):
                 )
                 doctor.save()
         elif data == "manufacturers":
-            Manafacturer.objects.all().delete()
+            Manufacturer.objects.all().delete()
             for index, row in df.iterrows():
-                manafacturer = Manafacturer(
-                    ManafacturerId = row["Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_ID"],
+                manufacturer = Manufacturer(
+                    ManufacturerId = row["Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_ID"],
                     Name = row["Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_Name"],
                     State = row["Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_State"],
                     Country = row["Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_Country"]
@@ -52,7 +52,7 @@ class Command(BaseCommand):
                 transaction = Transaction(
                     TransactionId=row["Record_ID"],
                     Doctor = Doctor.objects.get(pk=row["Physician_Profile_ID"]),
-                    Manafacturer = Manafacturer.objects.get(pk=row["Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_ID"]),
+                    Manafacturer = Manufacturer.objects.get(pk=row["Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_ID"]),
                     Type_Product = row["Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_1"],
                     Category = row["Product_Category_or_Therapeutic_Area_1"],
                     Name = row["Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_1"],

@@ -1,15 +1,15 @@
 from rest_framework import serializers
-from .models import Doctor, Manafacturer, Transaction
+from .models import Doctor, Manufacturer, Transaction
 
 class DoctorSerializer(serializers.ModelSerializer):
     class Meta:
         fields = ("__all__")
         model = Doctor
 
-class ManafacturerSerializer(serializers.ModelSerializer):
+class ManufacturerSerializer(serializers.ModelSerializer):
     class Meta:
         fields = ("__all__")
-        model = Manafacturer
+        model = Manufacturer
 
 class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
