@@ -6,7 +6,6 @@ class Doctor(models.Model):
     FirstName = models.CharField(max_length=35, null=True)
     MiddleName = models.CharField(max_length=30, null=True)
     LastName = models.CharField(max_length=35, null=True)
-    PrimaryType = models.CharField(max_length=100, null=True)
     Specialty = models.CharField(max_length=300, null=True)
     StreetAddress1 = models.CharField(max_length=80, null=True)
     StreetAddress2 = models.CharField(max_length=80, null=True)
@@ -27,7 +26,6 @@ class Doctor(models.Model):
             'FirstName': self.FirstName,
             'MiddleName': self.MiddleName,
             'LastName': self.LastName,
-            'PrimaryType': self.PrimaryType,
             'Specialty': self.Specialty,
             'StreetAddress1': self.StreetAddress1,
             'StreetAddress2': self.StreetAddress2,
@@ -60,17 +58,35 @@ class Transaction(models.Model):
     TransactionId = models.IntegerField(primary_key=True)
     Doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE)
     Manufacturer = models.ForeignKey(Manufacturer, on_delete=models.CASCADE)
-    Type_Product = models.CharField(max_length=100, null=True)
-    Category = models.CharField(max_length=100, null=True)
-    Name = models.CharField(max_length=100, null=True)
-    Pay_Amount = models.DecimalField(max_digits=10, decimal_places=2, null=True)
+
+    Type_Product_1 = models.CharField(max_length=100, null=True)
+    Category_1 = models.CharField(max_length=100, null=True)
+    Name_1 = models.CharField(max_length=500, null=True)
+
+    Type_Product_2 = models.CharField(max_length=100, null=True)
+    Category_2 = models.CharField(max_length=100, null=True)
+    Name_2 = models.CharField(max_length=500, null=True)
+
+    Type_Product_3 = models.CharField(max_length=100, null=True)
+    Category_3 = models.CharField(max_length=100, null=True)
+    Name_3 = models.CharField(max_length=500, null=True)
+
+    Type_Product_4 = models.CharField(max_length=100, null=True)
+    Category_4 = models.CharField(max_length=100, null=True)
+    Name_4 = models.CharField(max_length=500, null=True)
+
+    Type_Product_5 = models.CharField(max_length=100, null=True)
+    Category_5 = models.CharField(max_length=100, null=True)
+    Name_5 = models.CharField(max_length=500, null=True)
+
+    Pay_Amount = models.DecimalField(max_digits=12, decimal_places=2, null=True)
     Date = models.DateField(null=True)
     Payment = models.CharField(max_length=100, null=True)
     Nature_Payment = models.CharField(max_length=200, null=True)
     Contextual_Info = models.CharField(max_length=500, null=True)
 
     class Meta:
-        ordering = ['Date', 'Name']
+        ordering = ['Date']
     
     def __str__(self):
         return "#{} on date {}".format(str(self.TransactionId), str(self.Date))
@@ -80,9 +96,21 @@ class Transaction(models.Model):
             'TransactionId': self.TransactionId,
             'Doctor': self.Doctor.DoctorId,
             'Manufacturer': self.Manufacturer.Name,
-            'Type_Product': self.Type_Product,
-            'Category': self.Category,
-            'Name': self.Name,
+            'Type_Product_1': self.Type_Product_1,
+            'Category_1': self.Category_1,
+            'Name_1': self.Name_1,
+            'Type_Product_1': self.Type_Product_2,
+            'Category_1': self.Category_2,
+            'Name_1': self.Name_2,
+            'Type_Product_1': self.Type_Product_3,
+            'Category_1': self.Category_3,
+            'Name_1': self.Name_3,
+            'Type_Product_1': self.Type_Product_4,
+            'Category_1': self.Category_4,
+            'Name_1': self.Name_4,
+            'Type_Product_1': self.Type_Product_5,
+            'Category_1': self.Category_5,
+            'Name_1': self.Name_5,
             'Pay_Amount': self.Pay_Amount,
             'Date': self.Date,
             'Payment': self.Payment,

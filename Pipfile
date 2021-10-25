@@ -16,6 +16,7 @@ requests = "*"
 datetime = "*"
 django-rest-auth = "*"
 django-allauth = "*"
+alive-progress = "*"
 
 [dev-packages]
 
