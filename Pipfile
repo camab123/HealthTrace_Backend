@@ -14,6 +14,8 @@ pandas = "*"
 beautifulsoup4 = "*"
 requests = "*"
 datetime = "*"
+django-rest-auth = "*"
+django-allauth = "*"
 
 [dev-packages]
 
