@@ -17,6 +17,11 @@ datetime = "*"
 django-rest-auth = "*"
 django-allauth = "*"
 alive-progress = "*"
+tqdm = "*"
+django-postgres-copy = "*"
+serpy = "*"
+marshmallow = "*"
+django-debug-toolbar = "*"
 
 [dev-packages]
 

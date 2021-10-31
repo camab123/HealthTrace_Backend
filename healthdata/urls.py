@@ -15,5 +15,5 @@ urlpatterns = [
     path('doctors/', DoctorList.as_view(), name="DoctorList"),
     path('manufacturers/', ManufacturersList.as_view(), name="ManufacturerList"),
     path('transactions/', TransactionList.as_view(), name="TransactionList"),
-    path('doctorsummary/', DoctorSummary.as_view(), name="DoctorSummary"),
+    path('doctorsummary/<str:search>/', DoctorSummary.as_view(), name="DoctorSummary"),
 ]

@@ -1,16 +1,24 @@
 from django.core.management.base import BaseCommand, CommandError
-from healthdata.models import Doctor, Manufacturer, Transaction
+from healthdata.models import Doctor, Manufacturer, Transaction, TransactionItem
 import csv
 import pandas as pd
 from datetime import datetime
 import requests
 import sys
 import urllib.request
+from django.db import transaction
+from django.db.models import Q
 from alive_progress import alive_bar
-
+from itertools import groupby
+from tqdm import tqdm
+import time
+tqdm.pandas()
 
 
 class Command(BaseCommand):
+
+    def __init__(self):
+        self.transaction_list = []
 
     def add_arguments(self, parser):
         parser.add_argument("dataset", type=str, help="data to pull (doctors, manufacturers, transactions")
@@ -75,63 +83,169 @@ class Command(BaseCommand):
                         'Product_Category_or_Therapeutic_Area_5',
                         'Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_5']
             df = pd.read_csv("healthdata/data/transactions/{}.csv".format(year), usecols=req_cols)
+            # if Transaction.objects.filter(pk=first_row["Record_ID"]):
+            #     print("Already added")
+            # else:
+            #     print("Not added")
             print("{} is length of dataset".format(len(df.index)))
             with alive_bar(len(df.index)) as bar:
                 for index, row in df.iterrows():
-                    transaction, created = Transaction.objects.get_or_create(
-                        TransactionId=row["Record_ID"],
-                        Doctor = Doctor.objects.get(pk=row["Physician_Profile_ID"]),
-                        Manufacturer = Manufacturer.objects.get(pk=row["Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_ID"]),
+                    if len(self.transaction_list) > 100000:
+                        Transaction.objects.bulk_create(self.transaction_list)
+                        self.transaction_list = []
+                    transaction = Transaction(
+                    TransactionId=row["Record_ID"],
+                    Doctor_id = row["Physician_Profile_ID"],
+                    Manufacturer_id = row["Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_ID"],
 
-                        Type_Product_1 = row["Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_1"],
-                        Category_1 = row["Product_Category_or_Therapeutic_Area_1"],
-                        Name_1 = row["Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_1"],
+                    Type_Product_1 = row["Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_1"],
+                    Category_1 = row["Product_Category_or_Therapeutic_Area_1"],
+                    Name_1 = row["Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_1"],
 
-                        Type_Product_2 = row["Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_2"],
-                        Category_2 = row["Product_Category_or_Therapeutic_Area_2"],
-                        Name_2 = row["Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_2"],
+                    Type_Product_2 = row["Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_2"],
+                    Category_2 = row["Product_Category_or_Therapeutic_Area_2"],
+                    Name_2 = row["Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_2"],
 
-                        Type_Product_3 = row["Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_3"],
-                        Category_3 = row["Product_Category_or_Therapeutic_Area_3"],
-                        Name_3 = row["Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_3"],
+                    Type_Product_3 = row["Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_3"],
+                    Category_3 = row["Product_Category_or_Therapeutic_Area_3"],
+                    Name_3 = row["Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_3"],
 
-                        Type_Product_4 = row["Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_4"],
-                        Category_4 = row["Product_Category_or_Therapeutic_Area_4"],
-                        Name_4 = row["Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_4"],
+                    Type_Product_4 = row["Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_4"],
+                    Category_4 = row["Product_Category_or_Therapeutic_Area_4"],
+                    Name_4 = row["Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_4"],
 
-                        Type_Product_5 = row["Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_5"],
-                        Category_5 = row["Product_Category_or_Therapeutic_Area_5"],
-                        Name_5 = row["Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_5"],
+                    Type_Product_5 = row["Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_5"],
+                    Category_5 = row["Product_Category_or_Therapeutic_Area_5"],
+                    Name_5 = row["Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_5"],
 
-                        Pay_Amount = row["Total_Amount_of_Payment_USDollars"],
-                        Date = datetime.strptime(row["Date_of_Payment"], '%m/%d/%Y'),
-                        Payment = row["Form_of_Payment_or_Transfer_of_Value"],
-                        Nature_Payment = row["Nature_of_Payment_or_Transfer_of_Value"],
-                        Contextual_Info = row["Contextual_Information"]
+                    Pay_Amount = row["Total_Amount_of_Payment_USDollars"],
+                    Date = row["Date_of_Payment"],
+                    Payment = row["Form_of_Payment_or_Transfer_of_Value"],
+                    Nature_Payment = row["Nature_of_Payment_or_Transfer_of_Value"],
+                    Contextual_Info = row["Contextual_Information"]
                     )
+                    self.transaction_list.append(transaction)
                     bar()
+            Transaction.objects.bulk_create(self.transaction_list)
+            print("Upload complete")
+
+        elif data == "transactionitems":
+            req_cols = ["Type_Product", "Category", "Name"]
+            df = pd.read_csv("healthdata/data/all_items.csv", usecols=req_cols)
+            for index, row in df.iterrows():
+                item = TransactionItem.objects.get_or_create(
+                    Type_Product = row["Type_Product"],
+                    Category = row["Category"],
+                    Name = row["Name"]
+                )
         else:
             print("Inputted wrong string use (doctors, manafacturers, or transactions)")
 
-    def download_data(self, type):
-        BASE_URL = "https://openpaymentsdata.cms.gov/api/1/metastore/schemas/dataset/items/"
-        response = requests.get(BASE_URL).json()
-        transactions = []
-        for x in response:
-            if x["theme"] == ["General Payments"]:
-                transactions.append(x)
-        for x in transactions:
-            url = x["distribution"][0]["downloadURL"]
-            data = pd.read_csv(url)
-            # with urllib.request.urlopen(url) as f:
-            #      html = f.read().decode('utf-8')
-            print(data)
-            break
+    def create_transaction_record(self, row):
+        print(self.transaction_list)
+        transaction = Transaction(
+                TransactionId=row["Record_ID"],
+                Doctor_id = row["Physician_Profile_ID"],
+                Manufacturer_id = row["Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_ID"],
+
+                Type_Product_1 = row["Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_1"],
+                Category_1 = row["Product_Category_or_Therapeutic_Area_1"],
+                Name_1 = row["Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_1"],
+
+                Type_Product_2 = row["Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_2"],
+                Category_2 = row["Product_Category_or_Therapeutic_Area_2"],
+                Name_2 = row["Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_2"],
+
+                Type_Product_3 = row["Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_3"],
+                Category_3 = row["Product_Category_or_Therapeutic_Area_3"],
+                Name_3 = row["Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_3"],
+
+                Type_Product_4 = row["Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_4"],
+                Category_4 = row["Product_Category_or_Therapeutic_Area_4"],
+                Name_4 = row["Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_4"],
+
+                Type_Product_5 = row["Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_5"],
+                Category_5 = row["Product_Category_or_Therapeutic_Area_5"],
+                Name_5 = row["Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_5"],
+
+                Pay_Amount = row["Total_Amount_of_Payment_USDollars"],
+                Date = row["Date_of_Payment"],
+                Payment = row["Form_of_Payment_or_Transfer_of_Value"],
+                Nature_Payment = row["Nature_of_Payment_or_Transfer_of_Value"],
+                Contextual_Info = row["Contextual_Information"]
+            )
+        return transaction
+
+    def add_transaction_items(self):
+        transactions = Transaction.objects.filter(transactionitems__isnull=True).only(
+            "Type_Product_1", 
+            "Category_1", 
+            "Name_1",
+            "Type_Product_2", 
+            "Category_2", 
+            "Name_2",
+            "Type_Product_3", 
+            "Category_3", 
+            "Name_3",
+            "Type_Product_4", 
+            "Category_4", 
+            "Name_4",
+            "Type_Product_5", 
+            "Category_5", 
+            "Name_5",
+            "transactionitems"
+        )
+        # with alive_bar(len(transactions)) as bar:
+        ThroughModel = Transaction.transactionitems.through
+        bulk_through = []
+        #480 avg
+        #522 it/s
+        #580 it/s
+        for x in tqdm(transactions):
+            query = Q()
+            query_items = []
+            if x.Type_Product_1 != "nan" and x.Category_1 != "nan" and x.Name_1 != "nan":
+                query_items.append([x.Type_Product_1, x.Category_1, x.Name_1])
+
+                if x.Type_Product_2 != "nan" and x.Category_2 != "nan" and x.Name_2 != "nan":
+                    query_items.append([x.Type_Product_2, x.Category_2, x.Name_2])
+
+                    if x.Type_Product_3 != "nan" and x.Category_3 != "nan" and x.Name_3 != "nan":
+                        query_items.append([x.Type_Product_3, x.Category_3, x.Name_3])
+
+                        if x.Type_Product_4 != "nan" and x.Category_4 != "nan" and x.Name_4 != "nan":
+                            query_items.append([x.Type_Product_4, x.Category_4, x.Name_4])
+
+                            if x.Type_Product_5 != "nan" and x.Category_5 != "nan" and x.Name_5 != "nan":
+                                query_items.append([x.Type_Product_5, x.Category_5, x.Name_5])
+            if len(query_items) == 0:
+                bulk_through.append(ThroughModel(transaction_id = x.pk, transactionitem_id = 3))
+            else:
+                for item in query_items:
+                    query |= Q(Type_Product=item[0], Category=item[1], Name=item[2])
+                for y in TransactionItem.objects.filter(query).only("id"):
+                    bulk_through.append(ThroughModel(transaction_id = x.pk, transactionitem_id = y.pk))
+            if len(bulk_through) > 300000:
+                ThroughModel.objects.bulk_create(bulk_through)
+                bulk_through = []
+                print("Saved")
+        ThroughModel.objects.bulk_create(bulk_through)
+
+    def delete_transaction_items(self):
+        items = Transaction.transactionitems.through.objects.filter(transactionitem_id = 3)
+        print(len(items))
+
+
+
 
     def handle(self, *args, **kwargs):
         data = kwargs["dataset"]
         year = kwargs["year"]
-        self.add_data(data, year)
+        #11973177 are device transactions
+        #40013984 are drug transactions
+        transactions = Transaction.objects.filter(transactionitems__Type_Product="Biological").count()
+        print(transactions)
+        #self.add_data(data, year)
         
         
             
