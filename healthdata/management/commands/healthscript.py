@@ -235,16 +235,28 @@ class Command(BaseCommand):
         items = Transaction.transactionitems.through.objects.filter(transactionitem_id = 3)
         print(len(items))
 
+    def capitalize_transaction_items(self):
+        transactionitems = TransactionItem.objects.all()
+        for x in transactionitems:
+            x.Type_Product = x.Type_Product.capitalize()
+            x.Category = x.Category.capitalize()
+            x.Name = x.Name.capitalize()
+            x.save(update_fields=['Type_Product', 'Category', 'Name'])
 
+    def fix_addresses(self):
+        doctors = Doctor.objects.all()
+        for x in doctors:
+            x.StreetAddress1 = x.StreetAddress1.title()
+            x.StreetAddress2 = x.StreetAddress2.title()
+            x.save(update_fields=["StreetAddress1", "StreetAddress2"])
 
 
     def handle(self, *args, **kwargs):
         data = kwargs["dataset"]
         year = kwargs["year"]
+        self.fix_addresses()
         #11973177 are device transactions
         #40013984 are drug transactions
-        transactions = Transaction.objects.filter(transactionitems__Type_Product="Biological").count()
-        print(transactions)
         #self.add_data(data, year)
         
         

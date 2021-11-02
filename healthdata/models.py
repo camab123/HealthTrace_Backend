@@ -66,7 +66,7 @@ class Transaction(models.Model):
         indexes = [
             models.Index(fields=['Doctor']),
         ]
-        ordering = ['-Pay_Amount']
+        ordering = ['-Date']
     
     def __str__(self):
         return "#{} on date {}".format(str(self.TransactionId), str(self.Date))
@@ -97,7 +97,8 @@ class Transaction(models.Model):
             "Date": self.Date,
             "Payment": self.Payment,
             "Nature_Payment": self.Nature_Payment,
-            "Contextual_Info": self.Contextual_Info
+            "Contextual_Info": self.Contextual_Info,
+            "Manufacturer": self.Manufacturer.Name
         }
-
+    
     
