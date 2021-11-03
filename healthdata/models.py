@@ -43,6 +43,13 @@ class Manufacturer(models.Model):
     
     def __str__(self):
         return str(self.Name)
+    
+    def serialize_manu(self):
+        return {
+            "Name": self.Name,
+            "State": self.State,
+            "Country": self.Country
+        }
 
 class TransactionItem(models.Model):
     Type_Product = models.CharField(max_length=100, null=True, blank=True)
@@ -55,7 +62,7 @@ class TransactionItem(models.Model):
 class Transaction(models.Model):
     TransactionId = models.IntegerField(primary_key=True)
     Doctor = models.ForeignKey(Doctor, related_name="transactions", on_delete=models.CASCADE)
-    Manufacturer = models.ForeignKey(Manufacturer, on_delete=models.CASCADE)
+    Manufacturer = models.ForeignKey(Manufacturer,related_name="manufacturerTransactions", on_delete=models.CASCADE)
     transactionitems = models.ManyToManyField(TransactionItem)
     Pay_Amount = models.DecimalField(max_digits=12, decimal_places=2, null=True)
     Date = models.DateField(null=True)
@@ -65,6 +72,7 @@ class Transaction(models.Model):
     class Meta:
         indexes = [
             models.Index(fields=['Doctor']),
+            models.Index(fields=['Manufacturer'])
         ]
         ordering = ['-Date']
     
