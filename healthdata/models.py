@@ -58,7 +58,7 @@ class TransactionItem(models.Model):
 
     def __str__(self):
         return self.Type_Product + self.Name
-  
+
 class Transaction(models.Model):
     TransactionId = models.IntegerField(primary_key=True)
     Doctor = models.ForeignKey(Doctor, related_name="transactions", on_delete=models.CASCADE)

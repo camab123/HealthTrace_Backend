@@ -22,6 +22,11 @@ django-postgres-copy = "*"
 serpy = "*"
 marshmallow = "*"
 django-debug-toolbar = "*"
+django-redis = "*"
+django-environ = "*"
+boto = "*"
+whitenoise = "*"
+django-storages = "*"
 
 [dev-packages]
 

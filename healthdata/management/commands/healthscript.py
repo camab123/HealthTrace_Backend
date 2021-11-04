@@ -250,11 +250,16 @@ class Command(BaseCommand):
             x.StreetAddress2 = x.StreetAddress2.title()
             x.save(update_fields=["StreetAddress1", "StreetAddress2"])
 
+    def create_statsdf_manufacturer(self):
+        manufacturers = Manufacturer.objects.all()
+        for x in manufacturers:
+            #transactions = x.manufacturerTransactions
+            print(x)
 
     def handle(self, *args, **kwargs):
         data = kwargs["dataset"]
         year = kwargs["year"]
-        self.fix_addresses()
+        self.create_statsdf_manufacturer()
         #11973177 are device transactions
         #40013984 are drug transactions
         #self.add_data(data, year)
