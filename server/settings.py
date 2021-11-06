@@ -182,7 +182,7 @@ if REDIS_URL:
         "default": env.cache('REDIS_URL')
     }
 
-CACHE_TTL = 60 * 15
+CACHE_TTL = 60*60
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 

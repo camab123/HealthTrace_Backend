@@ -61,27 +61,10 @@ class Command(BaseCommand):
                 )
         elif data == "transactions":
             print("Adding to Transaction Records")
-            req_cols = ['Physician_Profile_ID',
-                        'Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_ID',
-                        'Total_Amount_of_Payment_USDollars', 'Date_of_Payment',
-                        'Form_of_Payment_or_Transfer_of_Value',
-                        'Nature_of_Payment_or_Transfer_of_Value', 'Contextual_Information',
-                        'Record_ID',
-                        'Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_1',
-                        'Product_Category_or_Therapeutic_Area_1',
-                        'Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_1',
-                        'Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_2',
-                        'Product_Category_or_Therapeutic_Area_2',
-                        'Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_2',
-                        'Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_3',
-                        'Product_Category_or_Therapeutic_Area_3',
-                        'Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_3',
-                        'Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_4',
-                        'Product_Category_or_Therapeutic_Area_4',
-                        'Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_4',
-                        'Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_5',
-                        'Product_Category_or_Therapeutic_Area_5',
-                        'Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_5']
+            Physician_Rows = ["Physician_Profile_ID", "Physician_First_Name", "Physician_Middle_Name", "Physician_Last_Name", "Recipient_Primary_Business_Street_Address_Line1", "Recipient_Primary_Business_Street_Address_Line2", "Recipient_City", "Recipient_State", "Recipient_Zip_Code", "Recipient_Country", "Physician_Specialty"]
+            Manufacturer_Rows = ["Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_Name", "Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_ID", "Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_State", "Applicable_Manufacturer_or_Applicable_GPO_Making_Payment_Country"]
+            Transaction_Rows = ["Record_ID", 'Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_1','Product_Category_or_Therapeutic_Area_1','Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_1','Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_2','Product_Category_or_Therapeutic_Area_2','Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_2','Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_3','Product_Category_or_Therapeutic_Area_3','Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_3','Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_4','Product_Category_or_Therapeutic_Area_4','Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_4','Indicate_Drug_or_Biological_or_Device_or_Medical_Supply_5','Product_Category_or_Therapeutic_Area_5','Name_of_Drug_or_Biological_or_Device_or_Medical_Supply_5' "Total_Amount_of_Payment_USDollars", "Date_of_Payment", "Form_of_Payment_or_Transfer_of_Value", "Nature_of_Payment_or_Transfer_of_Value", "Contextual_Information"]
+            req_cols = Physician_Rows + Manufacturer_Rows + Transaction_Rows
             df = pd.read_csv("healthdata/data/transactions/{}.csv".format(year), usecols=req_cols)
             # if Transaction.objects.filter(pk=first_row["Record_ID"]):
             #     print("Already added")
@@ -249,12 +232,6 @@ class Command(BaseCommand):
             x.StreetAddress1 = x.StreetAddress1.title()
             x.StreetAddress2 = x.StreetAddress2.title()
             x.save(update_fields=["StreetAddress1", "StreetAddress2"])
-
-    def create_statsdf_manufacturer(self):
-        manufacturers = Manufacturer.objects.all()
-        for x in manufacturers:
-            #transactions = x.manufacturerTransactions
-            print(x)
 
     def handle(self, *args, **kwargs):
         data = kwargs["dataset"]

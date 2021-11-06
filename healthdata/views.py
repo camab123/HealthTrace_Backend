@@ -31,7 +31,6 @@ class DoctorDetail(APIView):
 
 class DoctorList(APIView):
     permission_classes = (IsStafforReadOnly,)
-    @method_decorator(cache_page(CACHE_TTL))
     def get(self, request, format=None):
         search = self.request.query_params.get('search')
         page_number = self.request.query_params.get("page", 1)
@@ -53,6 +52,7 @@ class DoctorList(APIView):
 
 class DoctorSummary(APIView):
     permission_classes = (IsStafforReadOnly,)
+    @method_decorator(cache_page(CACHE_TTL))
     #filter_backends = (filters.SearchFilter,)
     def get(self, request, doctorid, format=None):
         year = self.request.query_params.get('year')
@@ -104,6 +104,7 @@ class ManufacturerDetail(APIView):
 
 class ManufacturerSummary(APIView):
     permission_classes = (IsStafforReadOnly,)
+    @method_decorator(cache_page(CACHE_TTL))
     def get(self, request, manufacturerid, format=None):
         year = self.request.query_params.get('year')
         manufacturer = Manufacturer.objects.get(pk=manufacturerid)
