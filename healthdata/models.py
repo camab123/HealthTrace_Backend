@@ -63,7 +63,7 @@ class Transaction(models.Model):
     TransactionId = models.IntegerField(primary_key=True)
     Doctor = models.ForeignKey(Doctor, related_name="transactions", on_delete=models.CASCADE)
     Manufacturer = models.ForeignKey(Manufacturer,related_name="manufacturerTransactions", on_delete=models.CASCADE)
-    transactionitems = models.ManyToManyField(TransactionItem)
+    transactionitems = models.ManyToManyField(TransactionItem, related_name="transactionitems")
     Pay_Amount = models.DecimalField(max_digits=12, decimal_places=2, null=True)
     Date = models.DateField(null=True)
     Payment = models.CharField(max_length=100, null=True)
@@ -72,7 +72,8 @@ class Transaction(models.Model):
     class Meta:
         indexes = [
             models.Index(fields=['Doctor']),
-            models.Index(fields=['Manufacturer'])
+            models.Index(fields=['Manufacturer']),
+            models.Index(fields=['TransactionId'])
         ]
         ordering = ['-Date']
     
