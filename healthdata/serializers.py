@@ -34,5 +34,5 @@ class DoctorSummarySerializer(serializers.ModelSerializer):
 
 class ManufacturerSerializer(serializers.ModelSerializer):
     class Meta:
-        fields = ("__all__")
+        fields = ["ManufacturerId", "Name", "State", "Country"]
         model = Manufacturer

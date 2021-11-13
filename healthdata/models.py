@@ -38,6 +38,7 @@ class Manufacturer(models.Model):
     Name = models.CharField(max_length=100, null=True)
     State = models.CharField(max_length=100, null=True)
     Country = models.CharField(max_length=100, null=True)
+    SummaryData = models.JSONField(blank=True, null=True)
     class Meta:
         ordering = ['Name']
     
@@ -58,6 +59,7 @@ class TransactionItem(models.Model):
 
     def __str__(self):
         return self.Type_Product + self.Name
+    
 
 class Transaction(models.Model):
     TransactionId = models.IntegerField(primary_key=True)
@@ -107,7 +109,8 @@ class Transaction(models.Model):
             "Payment": self.Payment,
             "Nature_Payment": self.Nature_Payment,
             "Contextual_Info": self.Contextual_Info,
-            "Manufacturer": self.Manufacturer.Name
+            "Manufacturer": self.Manufacturer.Name,
+            "ManufacturerId": self.Manufacturer.ManufacturerId
         }
     
     
