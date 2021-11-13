@@ -145,7 +145,7 @@ class TransactionList(APIView):
         search = self.request.query_params.get('search')
         page_number = self.request.query_params.get("page", 1)
         if search:
-            queryset = Transaction.objects.filter(TransactionId__icontains=search).prefetch_related("transactionitems")
+            queryset = Transaction.objects.filter(TransactionId=search).prefetch_related("transactionitems")
         else:
             queryset = Transaction.objects.all().prefetch_related("transactionitems")
         paginator = Paginator(queryset , 25)

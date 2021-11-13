@@ -56,7 +56,7 @@ class TransactionItem(models.Model):
     Type_Product = models.CharField(max_length=100, null=True, blank=True)
     Category = models.CharField(max_length=100, null=True, blank=True)
     Name = models.CharField(max_length=500, null=True, blank=True)
-
+    Opioid = models.BooleanField(default=False, blank=True, null=True)
     def __str__(self):
         return self.Type_Product + self.Name
     
@@ -71,6 +71,7 @@ class Transaction(models.Model):
     Payment = models.CharField(max_length=100, null=True)
     Nature_Payment = models.CharField(max_length=200, null=True)
     Contextual_Info = models.CharField(max_length=500, null=True)
+    OpioidInvolved = models.BooleanField(default=False, blank=True, null=True)
     class Meta:
         indexes = [
             models.Index(fields=['Doctor']),
