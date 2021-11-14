@@ -3,7 +3,7 @@ import csv
 import pandas as pd
 from pandas.core.indexes.base import Index
 import requests
-from datetime import datetime  
+from datetime import datetime
 from healthdata.models import Doctor, Manufacturer, Transaction, TransactionItem
 from tqdm import tqdm
 import time
@@ -13,11 +13,11 @@ class Command(BaseCommand):
 
     def __init__(self):
         pass
-    
+
     def UpdateDoctorData(self, file):
         df = pd.read_csv(file)
         existing_doctors = pd.DataFrame.from_records(Doctor.objects.all().values())
-        df_all = df.merge(existing_doctors.drop_duplicates(), on=['DoctorId'], 
+        df_all = df.merge(existing_doctors.drop_duplicates(), on=['DoctorId'],
                    how='left', indicator=True)
         df_all = df_all.loc[df_all['_merge'] == "left_only"]
         for index, row in df_all.iterrows():
@@ -27,13 +27,13 @@ class Command(BaseCommand):
     def UpdateManufacturerData(self, file):
         df = pd.read_csv(file)
         existing_manufacturers = pd.DataFrame.from_records(Manufacturer.objects.all().values("ManufacturerId"))
-        df_all = df.merge(existing_manufacturers.drop_duplicates(), on=['ManufacturerId'], 
+        df_all = df.merge(existing_manufacturers.drop_duplicates(), on=['ManufacturerId'],
                    how='left', indicator=True)
         df_all = df_all.loc[df_all['_merge'] == "left_only"]
         for index, row in df_all.iterrows():
             manufacturer = Manufacturer(ManufacturerId=row["ManufacturerId"], Name=row["ManufacturerName"], State=row["ManufacturerState"], Country=row["ManufacturerCountry"])
             manufacturer.save()
-    
+
     def AddTransactionYear(self, file):
         df = pd.read_csv(file)
         for index, row in df.iterrows():
@@ -49,9 +49,35 @@ class Command(BaseCommand):
                 print(transactionitem.values())
             # print(transactionitem.values())
             # print(transaction)
-            
+
+    def AddTransactionItems(self,file):
+        df = pd.read_csv(file)
+        print(df)
+        existing_transactions = pd.DataFrame.from_records(TransactionItem.objects.all().values())
+        df_all = df.merge(existing_transactions.drop_duplicates(), on=['Type_Product', 'Category', 'Name'],
+                   how='left', indicator=True)
+        df_all = df_all.loc[df_all['_merge'] == "left_only"]
+        print(df_all)
+        for index, row in df_all.iterrows():
+            pass
+
+    def RemTransactionItems(self):
+        transactions = Transaction.objects.filter(transactionitems__isnull=False)
+        for x in transactions:
+            x.transactionitems.clear()
+        print("Finished Deletion")
+
+    def deleteTransactionItems(self):
+        items = TransactionItem.objects.all()
+        print(items.values())
+    
+    def addTransactionItems(self):
+        df = pd.read_csv("healthdata/data/all_transactionitems.csv")
+        for index, row in df.iterrows():
+            transactionitem = TransactionItem(Type_Product=row["Type_Product"], Category=row["Category"], Name=row["Name"], Opioid=False)
+            print(transactionitem)
+        
 
     def handle(self, *args, **kwargs):
         print("Begin script")
-        self.AddTransactionItemsToTransactions("healthdata/data/TransactionItemData2020.csv")
-    
+        self.addTransactionItems()

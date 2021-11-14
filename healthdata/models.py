@@ -63,8 +63,8 @@ class TransactionItem(models.Model):
 
 class Transaction(models.Model):
     TransactionId = models.IntegerField(primary_key=True)
-    Doctor = models.ForeignKey(Doctor, related_name="transactions", on_delete=models.CASCADE)
-    Manufacturer = models.ForeignKey(Manufacturer,related_name="manufacturerTransactions", on_delete=models.CASCADE)
+    Doctor = models.ForeignKey(Doctor, related_name="transactions", null=True, on_delete=models.SET_NULL)
+    Manufacturer = models.ForeignKey(Manufacturer,related_name="manufacturerTransactions", null=True, on_delete=models.SET_NULL)
     transactionitems = models.ManyToManyField(TransactionItem, related_name="transactionitems")
     Pay_Amount = models.DecimalField(max_digits=12, decimal_places=2, null=True)
     Date = models.DateField(null=True)
