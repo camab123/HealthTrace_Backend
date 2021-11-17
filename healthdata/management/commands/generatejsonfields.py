@@ -105,6 +105,7 @@ class Command(BaseCommand):
             "Top_Items": TopItemPaymentsJson,
             "Top_States": TopStatesJson,
             }
+
     def handle(self, *args, **kwargs):
         all_manufacturers = Manufacturer.objects.all().values("ManufacturerId")
         with alive_bar(len(all_manufacturers)) as bar:

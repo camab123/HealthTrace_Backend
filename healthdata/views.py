@@ -44,14 +44,13 @@ class DoctorSummary(APIView):
         year = self.request.query_params.get('year')
         doctordata = Doctor.objects.get(pk=doctorid)
         if year and len(year) <= 4:
-            transactions = doctordata.transactions.select_related().filter(Date__year=year)
+            transactions = doctordata.transactions.select_related("Manufacturer").filter(Date__year=year)
         else:
-            transactions = doctordata.transactions.select_related().all()
+            transactions = doctordata.transactions.select_related("Manufacturer").only("Pay_Amount", "Date", "Payment", "Nature_Payment", "Contextual_Info", "Manufacturer__Name", "Manufacturer__ManufacturerId", "transactionitems", "Doctor__DoctorId")
         transactionitems = transactions.prefetch_related("transactionitems")
         doctor_serialized = doctordata.serialize_doc()
         serialized = [e.serialize_summary() for e in transactionitems]
         sum_payment = transactions.aggregate(Sum("Pay_Amount"))
-        #Carelink: 345.18
         top_item_payments = transactionitems.exclude(transactionitems__Name__isnull=True).values("transactionitems__Type_Product", "transactionitems__Name").annotate(total=Sum('Pay_Amount')).order_by("-total")[:5]
         top_manufacturers = transactions.values("Manufacturer__Name", "Manufacturer__ManufacturerId").annotate(top_manu=Count("Manufacturer__Name")).order_by("-top_manu")[:8]
         largest_payoffs = transactions.values("Pay_Amount").annotate(top_pay=Max("Pay_Amount")).order_by("-top_pay")[:3]
@@ -93,49 +92,16 @@ class ManufacturerSummary(APIView):
     # @method_decorator(cache_page(CACHE_TTL))
     def get(self, request, manufacturerid, format=None):
         year = self.request.query_params.get('year')
-        options = ["2016", "2017", "2018", "2019", "2020", "All", "all"]
-        if year not in options or year is None:
-            year = "All"
         manufacturer = Manufacturer.objects.get(pk=manufacturerid)
+        keys = manufacturer.SummaryData.keys()
+        if year not in keys or year is None:
+            year = "All"
         serialized = manufacturer.serialize_manu()
         data = {
             "ManufacturerDetails": serialized,
-            "SummaryData": manufacturer.SummaryData[year]
+            "Summary for {}".format(year): manufacturer.SummaryData[year]
         }
         return Response(data, status=200)
-
-
-# class ManufacturerSummary(APIView):
-#     permission_classes = (IsStafforReadOnly,)
-#     # @method_decorator(cache_page(CACHE_TTL))
-#     def get(self, request, manufacturerid, format=None):
-#         year = self.request.query_params.get('year')
-#         manufacturer = Manufacturer.objects.get(pk=manufacturerid)
-#         transactions = manufacturer.manufacturerTransactions.all().prefetch_related("transactionitems")
-#         transactionids = TransactionItem.objects.filter(transactionitems__Manufacturer=manufacturer).values_list("id", flat=True)
-#         transactionids = list(transactionids)
-#         serialized = manufacturer.serialize_manu()
-#         if year and len(year) <= 4:
-#             TransactionQuerySet = transactions.filter(Date__year=year)
-#         else:
-#             TransactionQuerySet = transactions
-#         SumPayment = TransactionQuerySet.aggregate(Sum("Pay_Amount"))
-#         TopStates = TransactionQuerySet.values("Doctor__State").annotate(top_states=Sum("Pay_Amount")).order_by("-top_states")[:10]
-#         TopDoctors = TransactionQuerySet.values("Doctor__DoctorId", "Doctor__FirstName", "Doctor__MiddleName", "Doctor__LastName").annotate(top_docs=Count("Doctor__DoctorId")).order_by("-top_docs")[:3]
-#         LargestPayoffs = TransactionQuerySet.values("Pay_Amount").annotate(top_pay=Max("Pay_Amount")).order_by("-top_pay")[:3]
-#         transactionitemsquery = TransactionItem.objects.exclude(Name__isnull=True).filter(id__in=transactionids).values("Type_Product", "Name")
-#         MostCommonDrugs = transactionitemsquery.annotate(top_drugs=Count('Name')).order_by('-top_drugs')[:3]
-#         TopItemPayments = transactionitemsquery.annotate(total=Sum('transactionitems__Pay_Amount')).order_by('-total')[:10]
-#         data = {
-#             "ManufacturerDetails": serialized,
-#             "Sum_Payments": SumPayment,
-#             "Top_Doctors": TopDoctors,
-#             "Largest_Payments": LargestPayoffs,
-#             "Most_Common_Items": MostCommonDrugs,
-#             "Top_Items": TopItemPayments,
-#             "Top_States": TopStates,
-#         }
-#         return Response(data, status=200)
 
 class TransactionList(APIView):
     permission_classes = (IsStafforReadOnly,)

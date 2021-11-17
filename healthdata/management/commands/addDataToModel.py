@@ -7,7 +7,8 @@ from datetime import datetime
 from healthdata.models import Doctor, Manufacturer, Transaction, TransactionItem
 from tqdm import tqdm
 import time
-from django.db.models import Q
+from django.db.models import Q, Count, Sum
+
 import numpy as np
 tqdm.pandas()
 
@@ -114,6 +115,34 @@ class Command(BaseCommand):
                 bulk_items = []
         Transaction.objects.bulk_create(bulk_items)
 
+    def TransactionByCounty(self):
+        df = pd.read_csv("healthdata/data/CountytoDoc.csv", dtype={"CountyId": str})
+        print(df["CountyId"])
+        data = []
+        df["DoctorId"] = df["DoctorId"].apply(lambda x: x[1:-1].split(','))
+        for index, row in tqdm(df.iterrows()):
+            print(row["CountyId"])
+            doctors = row["DoctorId"]
+            transactions = Transaction.objects.filter(Doctor__in=doctors).values("Date", "Pay_Amount", "OpioidInvolved")
+            OpioidData = transactions.filter(OpioidInvolved=True).values("Date", "Pay_Amount", "OpioidInvolved")
+            OverallSum = transactions.aggregate(Sum("Pay_Amount"))
+            OpioidSum = OpioidData.aggregate(Sum("Pay_Amount"))
+            if OpioidSum["Pay_Amount__sum"] is None:
+                OpioidSum["Pay_Amount__sum"] = 0
+            if OverallSum["Pay_Amount__sum"] is None:
+                OverallSum["Pay_Amount__sum"] = 0
+            data.append({
+                "County": row["CountyId"],
+                "TransactionSum": OverallSum["Pay_Amount__sum"],
+                "OpioidSum": OpioidSum["Pay_Amount__sum"]
+            })
+            if index == 10:
+                df = pd.DataFrame.from_dict(data)
+                print(df)
+                break
+        df = pd.DataFrame.from_dict(data)
+        df.to_csv("CountyDrugData.csv", index=False)
+
     def handle(self, *args, **kwargs):
         print("Begin script")
-        self.addTransactionItemToTransaction()
+        self.TransactionByCounty()
