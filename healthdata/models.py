@@ -58,7 +58,7 @@ class TransactionItem(models.Model):
     Name = models.CharField(max_length=500, null=True, blank=True)
     Opioid = models.BooleanField(default=False, blank=True, null=True)
     def __str__(self):
-        return self.Type_Product + self.Name
+        return self.Type_Product +  " " + self.Name
     
 
 class Transaction(models.Model):

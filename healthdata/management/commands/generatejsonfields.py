@@ -25,13 +25,13 @@ class Command(BaseCommand):
         self.objectjson = {}
 
     def ModelJsonPost(self, id):
-        
-        years = [2016, 2017, 2018, 2019, 2020, None]
+        years = [2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, None]
         for x in years:
             self.GetModelData(id, x)
         manufacturer = Manufacturer.objects.get(pk=id)
         manufacturer.SummaryData = self.objectjson
         manufacturer.save()
+        
     def GetModelData(self, id, year):
         manufacturer = Manufacturer.objects.get(pk=id)
         if year:

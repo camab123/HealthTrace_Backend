@@ -7,6 +7,8 @@ from datetime import datetime
 from healthdata.models import Doctor, Manufacturer, Transaction, TransactionItem
 from tqdm import tqdm
 import time
+from django.db.models import Q
+import numpy as np
 tqdm.pandas()
 
 class Command(BaseCommand):
@@ -61,23 +63,57 @@ class Command(BaseCommand):
         for index, row in df_all.iterrows():
             pass
 
-    def RemTransactionItems(self):
-        transactions = Transaction.objects.filter(transactionitems__isnull=False)
-        for x in transactions:
-            x.transactionitems.clear()
-        print("Finished Deletion")
-
-    def deleteTransactionItems(self):
-        items = TransactionItem.objects.all()
-        print(items.values())
-    
-    def addTransactionItems(self):
+    def MergeTransactionItemandTransaction(self):
         df = pd.read_csv("healthdata/data/all_transactionitems.csv")
-        for index, row in df.iterrows():
-            transactionitem = TransactionItem(Type_Product=row["Type_Product"], Category=row["Category"], Name=row["Name"], Opioid=False)
-            print(transactionitem)
-        
+        df = df.drop_duplicates()
+        df = df.fillna(0)
+        transactionitems = pd.DataFrame.from_records(TransactionItem.objects.all().values("id", "Type_Product", "Category", "Name"))
+        transactionitems = transactionitems.replace("nan", 0)
+        merged = df.merge(transactionitems, how="left", on=["Type_Product", "Category", "Name"])
+        merged = merged.replace(0, np.nan)
+        merged = merged[["TransactionId", "id"]]
+        merged.to_csv("healthdata/data/transactiondata.csv", index=False)
+        print("Finished Script")
+
+    def addTransactionItemToTransaction(self):
+        ThroughModel = Transaction.transactionitems.through
+        ThroughModel.objects.all().delete()
+        df = pd.read_csv("healthdata/data/ThroughModelData.csv")
+        # df = df[df["TransactionId"] != 705487363]
+        # df = df[df["TransactionId"] != 705487367]
+        # df = df[df["TransactionId"] != 705487371]
+        # df = df[df["TransactionId"] != 705487375]
+        # df = df[df["TransactionId"] != 705487379]
+        bulk_through = []
+        for index, row in tqdm(df.iterrows()):
+            bulk_through.append(ThroughModel(transaction_id = row["TransactionId"], transactionitem_id = row["id"]))
+            if len(bulk_through) > 1000000:
+                try:
+                    ThroughModel.objects.bulk_create(bulk_through)
+                    bulk_through = []
+                    print("Saved")
+                except:
+                    print("Had to use backup method")
+                    for x in bulk_through:  
+                        try:
+                            ThroughModel.objects.create(transaction_id = x.transaction_id, transactionitem_id = x.transactionitem_id)
+                        except Exception as e:
+                            print("Failed on {} due to {}".format(x, e))
+                    bulk_through = []
+                    print("Saved")
+        ThroughModel.objects.bulk_create(bulk_through)
+
+    def addTransactions(self):
+        df = pd.read_csv("healthdata/data/NewTransactions.csv")
+        bulk_items = []
+        for index, row in tqdm(df.iterrows()):
+            transactionobject = Transaction(TransactionId=row["TransactionId"], Doctor_id=row["DoctorId"], Manufacturer_id=row["ManufacturerId"], Pay_Amount=row["Pay_Amount"], Date=row["Date"], Payment=row["Form_Payment"], Nature_Payment=row["Nature_Payment"], Contextual_Info=row["Contextual_Info"], OpioidInvolved=False)
+            bulk_items.append(transactionobject)
+            if len(bulk_items) > 30000:
+                Transaction.objects.bulk_create(bulk_items)
+                bulk_items = []
+        Transaction.objects.bulk_create(bulk_items)
 
     def handle(self, *args, **kwargs):
         print("Begin script")
-        self.addTransactionItems()
+        self.addTransactionItemToTransaction()
