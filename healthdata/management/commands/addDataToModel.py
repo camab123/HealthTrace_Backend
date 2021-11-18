@@ -116,15 +116,13 @@ class Command(BaseCommand):
         Transaction.objects.bulk_create(bulk_items)
 
     def TransactionByCounty(self):
-        df = pd.read_csv("healthdata/data/CountytoDoc.csv", dtype={"CountyId": str})
-        print(df["CountyId"])
+        df = pd.read_csv("healthdata/data/CountytoDoc.csv", dtype={"DoctorId" : object, "CountyId": str})
         data = []
         df["DoctorId"] = df["DoctorId"].apply(lambda x: x[1:-1].split(','))
         for index, row in tqdm(df.iterrows()):
-            print(row["CountyId"])
             doctors = row["DoctorId"]
-            transactions = Transaction.objects.filter(Doctor__in=doctors).values("Date", "Pay_Amount", "OpioidInvolved")
-            OpioidData = transactions.filter(OpioidInvolved=True).values("Date", "Pay_Amount", "OpioidInvolved")
+            transactions = Transaction.objects.filter(Doctor__in=doctors).values("Pay_Amount", "OpioidInvolved")
+            OpioidData = transactions.filter(OpioidInvolved=True).values("Pay_Amount", "OpioidInvolved")
             OverallSum = transactions.aggregate(Sum("Pay_Amount"))
             OpioidSum = OpioidData.aggregate(Sum("Pay_Amount"))
             if OpioidSum["Pay_Amount__sum"] is None:
@@ -136,10 +134,6 @@ class Command(BaseCommand):
                 "TransactionSum": OverallSum["Pay_Amount__sum"],
                 "OpioidSum": OpioidSum["Pay_Amount__sum"]
             })
-            if index == 10:
-                df = pd.DataFrame.from_dict(data)
-                print(df)
-                break
         df = pd.DataFrame.from_dict(data)
         df.to_csv("CountyDrugData.csv", index=False)
 
