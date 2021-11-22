@@ -1,5 +1,6 @@
 from django.db import models
 from django.db import connection
+from django.contrib.postgres.search import SearchVectorField
 # Create your models here.
 class Doctor(models.Model):
     DoctorId = models.IntegerField(primary_key=True)
@@ -13,9 +14,11 @@ class Doctor(models.Model):
     State = models.CharField(max_length=20, null=True)
     ZipCode = models.CharField(max_length=15, null=True)
     Country = models.CharField(max_length=100, null=True)
+    doctor_name_idx = SearchVectorField()
     
     class Meta:
-        ordering = ['FirstName', 'MiddleName', 'LastName']
+        ordering = ['LastName', 'FirstName']
+        indexes = [models.Index(fields=['FirstName', "LastName"]),]
 
     def __str__(self):
         return str(self.FirstName) + " " + str(self.MiddleName) + " " + str(self.LastName)
@@ -32,7 +35,16 @@ class Doctor(models.Model):
             "State": self.State,
             "ZipCode": self.ZipCode
         }
-
+    def serialize_doc_search(self):
+        return {
+            "FirstName": self.FirstName,
+            "MiddleName": self.MiddleName,
+            "LastName": self.LastName,
+            "Specialty": self.Specialty,
+            "StreetAddress1": self.StreetAddress1,
+            "StreetAddress2": self.StreetAddress2,
+            "City": self.City,
+        }
 class Manufacturer(models.Model):
     ManufacturerId = models.BigIntegerField(primary_key=True)
     Name = models.CharField(max_length=100, null=True)

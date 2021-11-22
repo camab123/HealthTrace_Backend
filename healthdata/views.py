@@ -1,25 +1,23 @@
 from django.db.models.aggregates import Max
-from django.db.models import Count, Sum, query, Prefetch
-from rest_framework import generics
+from django.db.models import Count, Sum
 from rest_framework import filters
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
-
 from healthdata.serializers import DoctorSerializer, ManufacturerSerializer, TransactionSerializer, DoctorSummarySerializer, TransactionsForSummarySerializer
-from .models import Doctor, Manufacturer, Transaction, TransactionItem
+from .models import Doctor, Manufacturer, Transaction
 from .permissions import IsStafforReadOnly
-
 from django.core.paginator import Paginator
 from django.conf import settings
 from django.core.cache.backends.base import DEFAULT_TIMEOUT
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
-
-from django.http import Http404
-
 import time
 import pandas as pd
+from django.db.models import F, Value
+from django.db.models.functions import Concat
+
+from django.contrib.postgres.search import SearchVector, SearchRank
 
 CACHE_TTL = getattr(settings, 'CACHE_TTL', DEFAULT_TIMEOUT)
 
@@ -30,12 +28,40 @@ class DoctorDetail(APIView):
         serialized = doctor.serialize_doc()
         return Response(serialized, status=200)
 
-class DoctorList(generics.ListCreateAPIView):
+class DoctorListDetail(APIView):
     permission_classes = (IsStafforReadOnly,)
-    search_fields = ['=LastName', "=FirstName"]
-    filter_backends = (filters.SearchFilter,)
-    queryset = Doctor.objects.all()
-    serializer_class = DoctorSerializer
+    def get(self, request, format=None):
+        search = self.request.query_params.get('search')
+        page_number = self.request.query_params.get("page", 1)
+        startlim = (int(page_number) * 25) - 25
+        endlim = (int(page_number) * 25)
+        queryset = Doctor.objects.all().order_by("LastName", "DoctorId").values("DoctorId", "FirstName", "MiddleName", "LastName", "StreetAddress1", "StreetAddress2", "City", "State")
+        if search:
+            search = search.split(" ")
+            if len(search) > 1:
+                queryset = queryset.filter(FirstName__istartswith=search[0]).filter(LastName__istartswith=search[1])
+            else:
+                queryset = queryset.filter(LastName__istartswith=search[0])
+        pagecount = round(len(queryset)/25) + 1
+        serializer = [e for e in queryset[startlim:endlim]]
+        return Response({"Doctors": serializer, "Pages": pagecount}, status=200)
+
+class DoctorList(APIView):
+    permission_classes = (IsStafforReadOnly,)
+    def get(self, request, format=None):
+        search = self.request.query_params.get('search')
+        query_terms = search.split()
+        tsquery = " & ".join(query_terms)
+        tsquery += ":*"
+        doctorqueryset = Doctor.objects.all().values("DoctorId", "FirstName", "MiddleName", "LastName")
+        manufacturerqueryset = Manufacturer.objects.all().values("ManufacturerId", "Name")
+        if search:
+            doctorqueryset = Doctor.objects.extra(where=["doctor_name_idx @@ (to_tsquery(%s)) = true"],params=[tsquery]).values('DoctorId', 'FirstName', "MiddleName", "LastName")
+            manufacturerqueryset = manufacturerqueryset.filter(Name__istartswith=search)
+        doctorserialized = [e for e in doctorqueryset[:5]]
+        manufacturerserialized = [e for e in manufacturerqueryset[:5]]
+        data = {"Doctors": doctorserialized, "Manufacturers": manufacturerserialized}
+        return Response(data, status=200)
 
 class DoctorSummary(APIView):
     permission_classes = (IsStafforReadOnly,)
@@ -43,7 +69,7 @@ class DoctorSummary(APIView):
     def get(self, request, doctorid, format=None):
         year = self.request.query_params.get('year')
         doctordata = Doctor.objects.get(pk=doctorid)
-        if year and len(year) <= 4:
+        if year:
             transactions = doctordata.transactions.select_related("Manufacturer").filter(Date__year=year)
         else:
             transactions = doctordata.transactions.select_related("Manufacturer").only("Pay_Amount", "Date", "Payment", "Nature_Payment", "Contextual_Info", "Manufacturer__Name", "Manufacturer__ManufacturerId", "transactionitems", "Doctor__DoctorId")
@@ -99,7 +125,7 @@ class ManufacturerSummary(APIView):
         serialized = manufacturer.serialize_manu()
         data = {
             "ManufacturerDetails": serialized,
-            "Summary for {}".format(year): manufacturer.SummaryData[year]
+            "Summary Data": manufacturer.SummaryData[year]
         }
         return Response(data, status=200)
 
