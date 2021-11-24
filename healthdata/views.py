@@ -16,6 +16,7 @@ import time
 import pandas as pd
 from django.db.models import F, Value
 from django.db.models.functions import Concat
+import json
 
 from django.contrib.postgres.search import SearchVector, SearchRank
 
@@ -62,6 +63,19 @@ class DoctorList(APIView):
         manufacturerserialized = [e for e in manufacturerqueryset[:5]]
         data = {"Doctors": doctorserialized, "Manufacturers": manufacturerserialized}
         return Response(data, status=200)
+
+class StateMapData(APIView):
+    permission_classes = (IsStafforReadOnly,)
+    def get(self, request, format=None):
+        state = self.request.query_params.get('state')
+        jsonfile = open("healthdata/data/countiesdata.json",)
+        transformationsfile = open("healthdata/data/StateTransformations.json")
+        data = json.load(jsonfile)
+        transformations = json.load(transformationsfile)
+        transformation = transformations[state]
+        counties = [x for x in data["objects"]["counties"]["geometries"] if x["properties"]["State"] == state]
+        data["objects"]["counties"]["geometries"] = counties
+        return Response({"Transformations": transformation, "GeoJson": data})
 
 class DoctorSummary(APIView):
     permission_classes = (IsStafforReadOnly,)
@@ -142,7 +156,6 @@ class TransactionList(APIView):
             queryset = Transaction.objects.all().prefetch_related("transactionitems")
         paginator = Paginator(queryset , 25)
         serializer = TransactionSerializer(paginator.page(page_number), many=True,  context={'request':request})
-        print("Page took {} to load".format(time.time() - start))
         return Response(serializer.data, status=200)
 
 
