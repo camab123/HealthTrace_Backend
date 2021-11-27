@@ -68,14 +68,14 @@ class StateMapData(APIView):
     permission_classes = (IsStafforReadOnly,)
     def get(self, request, format=None):
         state = self.request.query_params.get('state')
-        jsonfile = open("healthdata/data/countiesdata.json",)
-        transformationsfile = open("healthdata/data/StateTransformations.json")
-        data = json.load(jsonfile)
-        transformations = json.load(transformationsfile)
-        transformation = transformations[state]
-        counties = [x for x in data["objects"]["counties"]["geometries"] if x["properties"]["State"] == state]
-        data["objects"]["counties"]["geometries"] = counties
-        return Response({"Transformations": transformation, "GeoJson": data})
+        year = self.request.query_params.get('year')
+        years = [2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, "All"]
+        with open ("healthdata/data/statedata/{}.json".format(state), "r") as jsonfile:
+            data = json.load(jsonfile)
+            for x in years:
+                if str(x) != str(year):
+                    del data["SummaryData"][str(x)]
+        return Response(data)
 
 class DoctorSummary(APIView):
     permission_classes = (IsStafforReadOnly,)

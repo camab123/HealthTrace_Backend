@@ -125,5 +125,3 @@ class Transaction(models.Model):
             "Manufacturer": self.Manufacturer.Name,
             "ManufacturerId": self.Manufacturer.ManufacturerId
         }
-    
-    
