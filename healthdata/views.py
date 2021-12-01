@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from healthdata.serializers import DoctorSerializer, ManufacturerSerializer, TransactionSerializer, DoctorSummarySerializer, TransactionsForSummarySerializer
-from .models import Doctor, Manufacturer, Transaction
+from .models import Doctor, Manufacturer, Transaction, State
 from .permissions import IsStafforReadOnly
 from django.core.paginator import Paginator
 from django.conf import settings
@@ -64,18 +64,33 @@ class DoctorList(APIView):
         data = {"Doctors": doctorserialized, "Manufacturers": manufacturerserialized}
         return Response(data, status=200)
 
+#class StateDetail
+
 class StateMapData(APIView):
     permission_classes = (IsStafforReadOnly,)
-    def get(self, request, format=None):
-        state = self.request.query_params.get('state')
+    def get(self, request, name, format=None):
+        state = State.objects.get(twolettercode=name)
+        data = {
+            "Name": state.name,
+            "Map": state.map,
+            "Transformation": state.transformation
+        }
+        return Response(data, status=200)
+
+class StateSummaryData(APIView):
+    permission_classes = (IsStafforReadOnly,)
+    def get(self, request, name, format=None):
         year = self.request.query_params.get('year')
         years = [2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, "All"]
-        with open ("healthdata/data/statedata/{}.json".format(state), "r") as jsonfile:
-            data = json.load(jsonfile)
-            for x in years:
-                if str(x) != str(year):
-                    del data["SummaryData"][str(x)]
-        return Response(data)
+        state = State.objects.get(twolettercode=name)
+        keys = state.summary.keys()
+        if year not in keys or year is None:
+            year = "All"
+        data = {
+            "Name": state.name,
+            "Summary": state.summary[year],
+        }
+        return Response(data, status=200)
 
 class DoctorSummary(APIView):
     permission_classes = (IsStafforReadOnly,)

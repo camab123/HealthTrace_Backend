@@ -14,7 +14,7 @@ class Doctor(models.Model):
     State = models.CharField(max_length=20, null=True)
     ZipCode = models.CharField(max_length=15, null=True)
     Country = models.CharField(max_length=100, null=True)
-    doctor_name_idx = SearchVectorField()
+    doctor_name_idx = SearchVectorField(null=True)
     
     class Meta:
         ordering = ['LastName', 'FirstName']
@@ -125,3 +125,14 @@ class Transaction(models.Model):
             "Manufacturer": self.Manufacturer.Name,
             "ManufacturerId": self.Manufacturer.ManufacturerId
         }
+
+
+class State(models.Model):
+    name = models.CharField(max_length=20)
+    twolettercode = models.CharField(max_length=2)
+    summary = models.JSONField(blank=True, null=True)
+    map = models.JSONField(blank=True, null=True)
+    transformation = models.CharField(max_length=255, blank=True, null=True)
+    ranking = models.JSONField(blank=True, null=True)
+    def __str__(self):
+        return self.name
