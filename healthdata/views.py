@@ -19,6 +19,7 @@ from django.db.models.functions import Concat
 import json
 
 from django.contrib.postgres.search import SearchVector, SearchRank
+from django.contrib.postgres.fields.jsonb import KeyTextTransform
 
 CACHE_TTL = getattr(settings, 'CACHE_TTL', DEFAULT_TIMEOUT)
 
@@ -64,7 +65,21 @@ class DoctorList(APIView):
         data = {"Doctors": doctorserialized, "Manufacturers": manufacturerserialized}
         return Response(data, status=200)
 
-#class StateDetail
+class StateRank(APIView):
+    permission_classes = (IsStafforReadOnly,)
+    def get(self, request, name, format=None):
+        #states = State.objects.all()
+        state = State.objects.get(twolettercode=name)
+        # counties = [i["properties"] for i in state.map["features"]]
+        # transactionsorted = (sorted(counties, key = lambda i: i['TransactionSum'],reverse=True))[0:10]
+        # opioidsorted = (sorted(counties, key = lambda i: i['OpioidSum'],reverse=True))[0:10]
+        data = {
+            "Name": state.name,
+            "Ranking": state.ranking,
+            # "TopTransactionCounties": transactionsorted,
+            # "TopOpioidCounties": opioidsorted
+        }
+        return Response(data, status=200)
 
 class StateMapData(APIView):
     permission_classes = (IsStafforReadOnly,)
@@ -92,6 +107,21 @@ class StateSummaryData(APIView):
         }
         return Response(data, status=200)
 
+class StateOpioidSummary(APIView):
+    permission_classes = (IsStafforReadOnly,)
+    def get(self, request, name, format=None):
+        year = self.request.query_params.get('year')
+        years = [2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, "All"]
+        state = State.objects.get(twolettercode=name)
+        keys = state.summary.keys()
+        if year not in keys or year is None:
+            year = "All"
+        data = {
+            "Name": state.name,
+            "Summary": state.summary["OpioidSummary"][year],
+        }
+        return Response(data, status=200)
+
 class DoctorSummary(APIView):
     permission_classes = (IsStafforReadOnly,)
     # @method_decorator(cache_page(CACHE_TTL))
@@ -108,8 +138,8 @@ class DoctorSummary(APIView):
         sum_payment = transactions.aggregate(Sum("Pay_Amount"))
         top_item_payments = transactionitems.exclude(transactionitems__Name__isnull=True).values("transactionitems__Type_Product", "transactionitems__Name").annotate(total=Sum('Pay_Amount')).order_by("-total")[:5]
         top_manufacturers = transactions.values("Manufacturer__Name", "Manufacturer__ManufacturerId").annotate(top_manu=Count("Manufacturer__Name")).order_by("-top_manu")[:8]
-        largest_payoffs = transactions.values("Pay_Amount").annotate(top_pay=Max("Pay_Amount")).order_by("-top_pay")[:3]
-        Most_Common_Drugs = transactionitems.values("transactionitems__Name", "transactionitems__Type_Product").annotate(top_drugs=Count("transactionitems__Name")).order_by("-top_drugs")[:3]
+        largest_payoffs = transactions.values("Pay_Amount").annotate(top_pay=Max("Pay_Amount")).order_by("-top_pay")[:5]
+        Most_Common_Drugs = transactionitems.values("transactionitems__Name", "transactionitems__Type_Product").annotate(top_drugs=Count("transactionitems__Name")).order_by("-top_drugs")[:5]
         data = {
             "Doctor": doctor_serialized,
             "Top_Manufacturers": top_manufacturers,

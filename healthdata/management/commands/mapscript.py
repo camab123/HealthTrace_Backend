@@ -12,8 +12,14 @@ from healthdata.models import Doctor, Transaction, TransactionItem, State
 from django.db.models.expressions import RawSQL
 from django.db.models.expressions import Window
 from django.db.models.functions import Rank
+from django.db import connection
+from django.db.models.functions import Cast
+from django.db.models import FloatField, ExpressionWrapper
+from decimal import Decimal
 import re
 tqdm.pandas()
+
+popdata = {'Alabama': 4903185.0, 'Alaska': 731545.0, 'Arizona': 7278717.0, 'Arkansas': 3017804.0, 'California': 39512223.0, 'Colorado': 5758736.0, 'Connecticut': 3565287.0, 'Delaware': 973764.0, 'District of Columbia': 705749.0, 'Florida': 21477737.0, 'Georgia': 10617423.0, 'Hawaii': 1415872.0, 'Idaho': 1787065.0, 'Illinois': 12671821.0, 'Indiana': 6732219.0, 'Iowa': 3155070.0, 'Kansas': 2913314.0, 'Kentucky': 4467673.0, 'Louisiana': 4648794.0, 'Maine': 1344212.0, 'Maryland': 6045680.0, 'Massachusetts': 6892503.0, 'Michigan': 9986857.0, 'Minnesota': 5639632.0, 'Mississippi': 2976149.0, 'Missouri': 6137428.0, 'Montana': 1068778.0, 'Nebraska': 1934408.0, 'Nevada': 3080156.0, 'New Hampshire': 1359711.0, 'New Jersey': 8882190.0, 'New Mexico': 2096829.0, 'New York': 19453561.0, 'North Carolina': 10488084.0, 'North Dakota': 762062.0, 'Ohio': 11689100.0, 'Oklahoma': 3956971.0, 'Oregon': 4217737.0, 'Pennsylvania': 12801989.0, 'Rhode Island': 1059361.0, 'South Carolina': 5148714.0, 'South Dakota': 884659.0, 'Tennessee': 6829174.0, 'Texas': 28995881.0, 'Utah': 3205958.0, 'Vermont': 623989.0, 'Virginia': 8535519.0, 'Washington': 7614893.0, 'West Virginia': 1792147.0, 'Wisconsin': 5822434.0, 'Wyoming': 578759.0}
 
 class Command(BaseCommand):
     
@@ -131,11 +137,12 @@ class Command(BaseCommand):
 
     def getStateQueryData(self, state, year):
         if year:
-            transactions = Transaction.objects.filter(Doctor__in=Doctor.objects.filter(State=state), Date__year=year).prefetch_related("transactionitems").select_related("Manufacturer")
+            transactions = Transaction.objects.filter(Doctor__State=state, Date__year=year).prefetch_related("transactionitems").select_related("Manufacturer")
         else:
-            transactions = Transaction.objects.filter(Doctor__in=Doctor.objects.filter(State=state)).prefetch_related("transactionitems").select_related("Manufacturer")
+            transactions = Transaction.objects.filter(Doctor__State=state).prefetch_related("transactionitems").select_related("Manufacturer")
         SumPayment = transactions.aggregate(Sum("Pay_Amount"))
         SumPaymentJson = SumPayment["Pay_Amount__sum"]
+        
         if SumPaymentJson:
             SumPaymentJson = float(SumPaymentJson)
         TopManufacturers = transactions.values("Manufacturer__ManufacturerId", "Manufacturer__Name").annotate(top_manufacturers=Sum("Pay_Amount")).order_by("-top_manufacturers")[:10]
@@ -190,7 +197,6 @@ class Command(BaseCommand):
             }
 
     def getOpioidSummary(self, state, year):
-        state = state.twolettercode
         if year:
             transactions = Transaction.objects.filter(Doctor__State = state, Date__year=year, OpioidInvolved=True).prefetch_related("transactionitems").select_related("Manufacturer")
         else:
@@ -262,32 +268,48 @@ class Command(BaseCommand):
             return data
 
     def opioidSummary(self):
-        states = State.objects.all()
+        states = State.objects.exclude(summary__has_key="OpioidSummary")
         years = [2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, None]
         with alive_bar(states.count()) as bar:
             for state in states:
+                lettercode = state.twolettercode
+                print(lettercode)
                 for year in years:
-                    self.getOpioidSummary(state, year)
+                    self.getOpioidSummary(lettercode, year)
+                times = [float(x["time"]) for x in connection.queries]
+                #Print out the top 10 longest queries
+                print(lettercode, sorted(times, key = float, reverse=True)[:20])
                 state.summary["OpioidSummary"] = self.summaryOpioidJson
                 state.save()
+                bar()
 
     def getRankings(self):
-        states = State.objects.all().annotate(
-                sum_pay=RawSQL("summary #> '{All}' #> '{Sum_Payments}'", [])
-            ).annotate(
-                sum_pay=RawSQL("summary #> '{All}' #> '{Sum_Payments}'", [])
-            )
-        states = states.annotate(pay_rank=Window(
-                expression=Rank(),
-                order_by=F('sum_pay').desc()
-            ),
-        )
+        states = State.objects.all()
+        data = []
         for state in states:
-            print(state.rank)
-
+            state.opioid_sum = state.summary["OpioidSummary"]["All"]["Sum_Payments"]
+            state.sum_pay = state.summary["All"]["Sum_Payments"]
+            data.append({
+                "State": state.name,
+                "Transaction": state.summary["All"]["Sum_Payments"],
+                "Opioid_sum": state.summary["OpioidSummary"]["All"]["Sum_Payments"],
+                "Transaction_Per_Capita" : state.summary["All"]["Sum_Payments"]/popdata.get(state.name),
+                "Opioid_Per_Capita": state.summary["OpioidSummary"]["All"]["Sum_Payments"]/popdata.get(state.name)
+            })
+        df = pd.DataFrame(data)
+        df["TransactionRankPerCapita"] = df["Transaction_Per_Capita"].rank(ascending=False).astype(int)
+        df["OpioidRankPerCapita"] = df["Opioid_Per_Capita"].rank(ascending=False).astype(int)
+        for index, row in df.iterrows():
+            state = State.objects.filter(name=row["State"])[0]
+            state.ranking = None
+            state.ranking = {
+                "Rank": row["TransactionRankPerCapita"],
+                "OpioidRank": row["OpioidRankPerCapita"]
+            }
+            state.save()
     def handle(self, *args, **kwargs):
         print("Begin script")
-        self.opioidSummary()
+        self.getRankings()
                 
             
         

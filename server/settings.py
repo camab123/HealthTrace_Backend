@@ -33,7 +33,6 @@ if DEBUG:
 else:
     ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['example.com'])
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -110,7 +109,7 @@ CORS_ORIGIN_WHITELIST = (
     'http://localhost:3000',
     'http://localhost:8000',
 )
-
+CORS_ORIGIN_ALLOW_ALL = True
 DATABASES = {
     "default": env.db("DATABASE_URL")
 }
