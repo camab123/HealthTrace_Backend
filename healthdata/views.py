@@ -3,8 +3,7 @@ from django.db.models import Count, Sum
 from rest_framework import filters
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
-from healthdata.serializers import DoctorSerializer, ManufacturerSerializer, TransactionSerializer, DoctorSummarySerializer, TransactionsForSummarySerializer
+from healthdata.serializers import ManufacturerSerializer, TransactionSerializer
 from .models import Doctor, Manufacturer, Transaction, State
 from .permissions import IsStafforReadOnly
 from django.core.paginator import Paginator
@@ -13,13 +12,6 @@ from django.core.cache.backends.base import DEFAULT_TIMEOUT
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 import time
-import pandas as pd
-from django.db.models import F, Value
-from django.db.models.functions import Concat
-import json
-
-from django.contrib.postgres.search import SearchVector, SearchRank
-from django.contrib.postgres.fields.jsonb import KeyTextTransform
 
 CACHE_TTL = getattr(settings, 'CACHE_TTL', DEFAULT_TIMEOUT)
 
@@ -30,23 +22,23 @@ class DoctorDetail(APIView):
         serialized = doctor.serialize_doc()
         return Response(serialized, status=200)
 
-class DoctorListDetail(APIView):
+class DoctorSearch(APIView):
     permission_classes = (IsStafforReadOnly,)
     def get(self, request, format=None):
         search = self.request.query_params.get('search')
+        query_terms = search.split()
+        tsquery = " & ".join(query_terms)
+        tsquery += ":*"
         page_number = self.request.query_params.get("page", 1)
         startlim = (int(page_number) * 25) - 25
         endlim = (int(page_number) * 25)
-        queryset = Doctor.objects.all().order_by("LastName", "DoctorId").values("DoctorId", "FirstName", "MiddleName", "LastName", "StreetAddress1", "StreetAddress2", "City", "State")
+        doctorqueryset = Doctor.objects.all().values("DoctorId", "FirstName", "MiddleName", "LastName", "StreetAddress1", "StreetAddress2", "City", "State")[:250]
         if search:
-            search = search.split(" ")
-            if len(search) > 1:
-                queryset = queryset.filter(FirstName__istartswith=search[0]).filter(LastName__istartswith=search[1])
-            else:
-                queryset = queryset.filter(LastName__istartswith=search[0])
-        pagecount = round(len(queryset)/25) + 1
-        serializer = [e for e in queryset[startlim:endlim]]
-        return Response({"Doctors": serializer, "Pages": pagecount}, status=200)
+            doctorqueryset = Doctor.objects.extra(where=["doctor_name_idx @@ (to_tsquery(%s)) = true"],params=[tsquery]).values("DoctorId", "FirstName", "MiddleName", "LastName", "StreetAddress1", "StreetAddress2", "City", "State")[:250]
+        pagecount = round(len(doctorqueryset)/25)
+        doctorserialized = [e for e in doctorqueryset[startlim:endlim]]
+        data = {"Doctors": doctorserialized, "Pages": pagecount}
+        return Response(data, status=200)
 
 class DoctorList(APIView):
     permission_classes = (IsStafforReadOnly,)
@@ -58,8 +50,8 @@ class DoctorList(APIView):
         doctorqueryset = Doctor.objects.all().values("DoctorId", "FirstName", "MiddleName", "LastName")
         manufacturerqueryset = Manufacturer.objects.all().values("ManufacturerId", "Name")
         if search:
-            doctorqueryset = Doctor.objects.extra(where=["doctor_name_idx @@ (to_tsquery(%s)) = true"],params=[tsquery]).values('DoctorId', 'FirstName', "MiddleName", "LastName")
-            manufacturerqueryset = manufacturerqueryset.filter(Name__istartswith=search)
+            doctorqueryset = Doctor.objects.extra(where=["doctor_name_idx @@ (to_tsquery(%s)) = true"],params=[tsquery]).values('DoctorId', 'FirstName', "MiddleName", "LastName")[:250]
+            manufacturerqueryset = manufacturerqueryset.filter(Name__istartswith=search)[:100]
         doctorserialized = [e for e in doctorqueryset[:5]]
         manufacturerserialized = [e for e in manufacturerqueryset[:5]]
         data = {"Doctors": doctorserialized, "Manufacturers": manufacturerserialized}
@@ -68,16 +60,10 @@ class DoctorList(APIView):
 class StateRank(APIView):
     permission_classes = (IsStafforReadOnly,)
     def get(self, request, name, format=None):
-        #states = State.objects.all()
         state = State.objects.get(twolettercode=name)
-        # counties = [i["properties"] for i in state.map["features"]]
-        # transactionsorted = (sorted(counties, key = lambda i: i['TransactionSum'],reverse=True))[0:10]
-        # opioidsorted = (sorted(counties, key = lambda i: i['OpioidSum'],reverse=True))[0:10]
         data = {
             "Name": state.name,
             "Ranking": state.ranking,
-            # "TopTransactionCounties": transactionsorted,
-            # "TopOpioidCounties": opioidsorted
         }
         return Response(data, status=200)
 

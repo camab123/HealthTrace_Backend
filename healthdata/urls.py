@@ -3,12 +3,12 @@ from django.urls import path
 from rest_framework.routers import SimpleRouter
 
 # from .views import DoctorSummary, DoctorsViewSet, ManufacturersViewSet, TransactionsViewSet
-from .views import StateRank, StateOpioidSummary, StateMapData, StateSummaryData, DoctorList, DoctorListDetail, DoctorDetail, DoctorSummary, ManufacturersList, ManufacturerDetail, ManufacturerSummary, TransactionList
+from .views import DoctorSearch, StateRank, StateOpioidSummary, StateMapData, StateSummaryData, DoctorList, DoctorDetail, DoctorSummary, ManufacturersList, ManufacturerDetail, ManufacturerSummary, TransactionList
 
 urlpatterns = [
     path('doctor/<str:doctorid>/', DoctorDetail.as_view(), name="DoctorDetail"),
+    path('doctors/', DoctorSearch.as_view(), name="DoctorSearch"),
     path('doctorsearch/', DoctorList.as_view(), name="DoctorList"),
-    path('doctors/', DoctorListDetail.as_view(), name="DoctorListDetail"),
     path('statemap/<str:name>/', StateMapData.as_view(), name="StateMap"),
     path('statesummary/<str:name>/', StateSummaryData.as_view(), name="StateSummary"),
     path('statesummaryopioids/<str:name>/', StateOpioidSummary.as_view(), name="StateOpioidSummary"),
