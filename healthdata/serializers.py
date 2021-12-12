@@ -9,7 +9,7 @@ class DoctorSerializer(serializers.ModelSerializer):
 
 class TransactionItemSerializer(serializers.ModelSerializer):
     class Meta:
-        fields = "__all__"
+        fields = ["Type_Product", "Category", "Name"]
         model = TransactionItem
 
 class TransactionSerializer(serializers.ModelSerializer):
@@ -36,3 +36,5 @@ class ManufacturerSerializer(serializers.ModelSerializer):
     class Meta:
         fields = ["ManufacturerId", "Name", "State", "Country"]
         model = Manufacturer
+
+

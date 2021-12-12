@@ -3,10 +3,12 @@ from django.db.models import Count, Sum
 from rest_framework import filters
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from healthdata.serializers import ManufacturerSerializer, TransactionSerializer
+from healthdata.serializers import ManufacturerSerializer, TransactionSerializer, TransactionsForSummarySerializer
 from .models import Doctor, Manufacturer, Transaction, State
 from .permissions import IsStafforReadOnly
 from django.core.paginator import Paginator
+from rest_framework.pagination import LimitOffsetPagination
+from .paginations import TransactionSummaryPaginator
 from django.conf import settings
 from django.core.cache.backends.base import DEFAULT_TIMEOUT
 from django.utils.decorators import method_decorator
@@ -57,6 +59,75 @@ class DoctorList(APIView):
         data = {"Doctors": doctorserialized, "Manufacturers": manufacturerserialized}
         return Response(data, status=200)
 
+class DoctorSummary(APIView):
+    permission_classes = (IsStafforReadOnly,)
+    # @method_decorator(cache_page(CACHE_TTL))
+    def get(self, request, doctorid, format=None):
+        year = self.request.query_params.get('year')
+        doctordata = Doctor.objects.get(pk=doctorid)
+        if year:
+            transactions = doctordata.transactions.select_related("Manufacturer").filter(Date__year=year)
+        else:
+            transactions = doctordata.transactions.select_related("Manufacturer").only("Pay_Amount", "Date", "Payment", "Nature_Payment", "Contextual_Info", "Manufacturer__Name", "Manufacturer__ManufacturerId", "transactionitems", "Doctor__DoctorId")
+        transactionitems = transactions.prefetch_related("transactionitems")
+        doctor_serialized = doctordata.serialize_doc()
+        sum_payment = transactions.aggregate(Sum("Pay_Amount"))
+        top_item_payments = transactionitems.exclude(transactionitems__Name__isnull=True).values("transactionitems__Type_Product", "transactionitems__Name").annotate(total=Sum('Pay_Amount')).order_by("-total")[:5]
+        top_manufacturers = transactions.values("Manufacturer__Name", "Manufacturer__ManufacturerId").annotate(top_manu=Count("Manufacturer__Name")).order_by("-top_manu")[:8]
+        largest_payoffs = transactions.values("Pay_Amount").annotate(top_pay=Max("Pay_Amount")).order_by("-top_pay")[:5]
+        Most_Common_Drugs = transactionitems.values("transactionitems__Name", "transactionitems__Type_Product").annotate(top_drugs=Count("transactionitems__Name")).order_by("-top_drugs")[:5]
+        data = {
+            "Doctor": doctor_serialized,
+            "Top_Manufacturers": top_manufacturers,
+            "Top_Payment": largest_payoffs,
+            "Top_Drugs": Most_Common_Drugs,
+            "Top_Paid_Items": top_item_payments,
+            "Sum_Payment": sum_payment
+        }
+        return Response(data, status=200)
+
+class DoctorTransactions(APIView):
+    permission_classes = (IsStafforReadOnly,)
+    paginator = TransactionSummaryPaginator
+    # @method_decorator(cache_page(CACHE_TTL))
+    def get(self, request, doctorid, format=None):
+        year = self.request.query_params.get('year')
+        page_number = self.request.query_params.get("page", 1)
+        lim_count = 10
+        startlim = (int(page_number) * lim_count) - lim_count
+        endlim = (int(page_number) * lim_count)
+        doctordata = Doctor.objects.get(pk=doctorid)
+        if year:
+            #transactioncount = doctordata.transactions.filter(Date__year=year).count()
+            transactions = doctordata.transactions.select_related("Manufacturer").filter(Date__year=year)
+        else:
+            # transactioncount = doctordata.transactions.count()
+            transactions = doctordata.transactions.select_related("Manufacturer")
+        transactionitems = transactions.prefetch_related("transactionitems")
+        # pagecount = round((transactioncount)/lim_count)
+        # nextpage = int(page_number) + 1
+        # if nextpage > pagecount:
+        #     nextpage = None
+        serializer_class = TransactionsForSummarySerializer(transactionitems, many=True)
+        #paginator = LimitOffsetPagination()
+        #paginator = Paginator(transactionitems , 10)
+        #serializer_class = TransactionsForSummarySerializer(paginator.page(page_number), many=True,  context={'request':request})
+        # print(transactionitems.values(), transactionitems[0].transactionitems.values())
+        # trial = [{'TransactionId': b.TransactionId, 'TransactionItem': [a.Name for a in b.transactionitems.all()]} for b in transactionitems[startlim:endlim]]
+        # print(trial)
+        # serialized = [e.serialize_summary() for e in transactionitems.prefetch_related("transactionitems")[startlim:endlim]]
+        # pagecount = round(len(transactions)/lim_count)
+        # nextpage = int(page_number) + 1
+        # if nextpage > pagecount:
+        #     nextpage = None
+        # data = {
+        #     "DoctorId": doctordata.DoctorId,
+        #     "Transactions": serialized,
+        #     "PageCount": pagecount,
+        #     "nextPage": nextpage
+        # }
+        return Response(serializer_class.data, status=200)
+
 class StateRank(APIView):
     permission_classes = (IsStafforReadOnly,)
     def get(self, request, name, format=None):
@@ -105,35 +176,6 @@ class StateOpioidSummary(APIView):
         data = {
             "Name": state.name,
             "Summary": state.summary["OpioidSummary"][year],
-        }
-        return Response(data, status=200)
-
-class DoctorSummary(APIView):
-    permission_classes = (IsStafforReadOnly,)
-    # @method_decorator(cache_page(CACHE_TTL))
-    def get(self, request, doctorid, format=None):
-        year = self.request.query_params.get('year')
-        doctordata = Doctor.objects.get(pk=doctorid)
-        if year:
-            transactions = doctordata.transactions.select_related("Manufacturer").filter(Date__year=year)
-        else:
-            transactions = doctordata.transactions.select_related("Manufacturer").only("Pay_Amount", "Date", "Payment", "Nature_Payment", "Contextual_Info", "Manufacturer__Name", "Manufacturer__ManufacturerId", "transactionitems", "Doctor__DoctorId")
-        transactionitems = transactions.prefetch_related("transactionitems")
-        doctor_serialized = doctordata.serialize_doc()
-        serialized = [e.serialize_summary() for e in transactionitems]
-        sum_payment = transactions.aggregate(Sum("Pay_Amount"))
-        top_item_payments = transactionitems.exclude(transactionitems__Name__isnull=True).values("transactionitems__Type_Product", "transactionitems__Name").annotate(total=Sum('Pay_Amount')).order_by("-total")[:5]
-        top_manufacturers = transactions.values("Manufacturer__Name", "Manufacturer__ManufacturerId").annotate(top_manu=Count("Manufacturer__Name")).order_by("-top_manu")[:8]
-        largest_payoffs = transactions.values("Pay_Amount").annotate(top_pay=Max("Pay_Amount")).order_by("-top_pay")[:5]
-        Most_Common_Drugs = transactionitems.values("transactionitems__Name", "transactionitems__Type_Product").annotate(top_drugs=Count("transactionitems__Name")).order_by("-top_drugs")[:5]
-        data = {
-            "Doctor": doctor_serialized,
-            "Top_Manufacturers": top_manufacturers,
-            "Top_Payment": largest_payoffs,
-            "Top_Drugs": Most_Common_Drugs,
-            "Top_Paid_Items": top_item_payments,
-            "Transactions": serialized,
-            "Sum_Payment": sum_payment
         }
         return Response(data, status=200)
 
