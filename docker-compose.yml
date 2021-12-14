@@ -3,7 +3,9 @@ version: '3.9'
 services:
   web:
     build: .
-    command: python3 /code/manage.py runserver 0.0.0.0:8000
+    command: gunicorn server.wsgi -b 0.0.0.0:8000
+    environment: 
+      - ENVIRONMENT=development
     volumes:
       - .:/code
     ports:
@@ -12,10 +14,10 @@ services:
       - .env
     links:
       - db
-      - redis
+      # - redis
     depends_on:
       - db
-      - redis
+      # - redis
   db:
     image: postgres:13
     shm_size: 1g
@@ -25,14 +27,19 @@ services:
       - POSTGRES_PASSWORD=postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data/
-  redis:
-    image: redis
-    command: "redis-server"
-    ports:
-      - "14000:6379"
-    volumes:
-      - redis_data:/data
+  # redis:
+  #   image: redis
+  #   command: "redis-server"
+  #   ports:
+  #     - "14000:6379"
+  #   volumes:
+  #     - redis_data:/data
 volumes:
   postgres_data:
-  redis_data:
+  # redis_data:
 
+
+    #AWS CREDS
+    # DB USER: abeelcf
+    # DB PASS: ncDl57PIWiaG41B9mWm1
+    # docker run -it --rm postgres psql --host healthcare-db-1.cs6wxy3pcyxd.us-east-1.rds.amazonaws.com --port 5432 --username abeelcf --dbname postgres

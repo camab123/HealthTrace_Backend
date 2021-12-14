@@ -18,10 +18,16 @@ class TransactionSerializer(serializers.ModelSerializer):
         fields = "__all__"
         model = Transaction
 
+class TransactionManufacturerSerializer(serializers.ModelSerializer):
+    class Meta:
+        fields = ["ManufacturerId", "Name"]
+        model = Manufacturer
+
 class TransactionsForSummarySerializer(serializers.ModelSerializer):
     transactionitems = TransactionItemSerializer(many=True, read_only=True)
+    manufacturers = TransactionManufacturerSerializer(many=False, read_only=True)
     class Meta:
-        fields = ["transactionitems", "Pay_Amount", "Date", "Payment", "Nature_Payment", "Contextual_Info"]
+        fields = ["manufacturers", "transactionitems", "Pay_Amount", "Date", "Payment", "Nature_Payment", "Contextual_Info"]
         model = Transaction
 
 class DoctorSummarySerializer(serializers.ModelSerializer):
@@ -31,6 +37,8 @@ class DoctorSummarySerializer(serializers.ModelSerializer):
     class Meta:
         fields = "__all__"
         model = Transaction
+
+
 
 class ManufacturerSerializer(serializers.ModelSerializer):
     class Meta:

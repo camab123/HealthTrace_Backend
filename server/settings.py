@@ -13,27 +13,37 @@ from pathlib import Path
 import environ
 import os
 
+# Access DB : docker compose exec db psql -U postgres -d database1  
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 env = environ.Env()
-
+ENVIRONMENT = os.environ.get('ENVIRONMENT', default='production')
 # Quick-start development settings - unsuitabled for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('DJANGO_SECRET_KEY')
-
+SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env.bool("DJANGO_DEBUG", False)
-
-if DEBUG:
+DEBUG = env.bool("DEBUG")
+if DEBUG is True:
     # If Debug is True, allow all.
     ALLOWED_HOSTS = ['*']
 else:
-    ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['example.com'])
+    ALLOWED_HOSTS = ['*']
+    #ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['example.com'])
 
 # Application definition
+if ENVIRONMENT == 'production':
+    SECURE_BROWSER_XSS_FILTER = True
+    X_FRAME_OPTIONS = 'DENY'
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 3600
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -41,6 +51,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
     'django.contrib.postgres',
 
@@ -49,7 +60,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework.authtoken',
     'rest_auth',
-    'debug_toolbar',
+    # 'debug_toolbar',
     'storages',
 
     #local
@@ -66,7 +77,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
+    #'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
 REST_FRAMEWORK = {
@@ -110,23 +121,23 @@ CORS_ORIGIN_WHITELIST = (
     'http://localhost:8000',
 )
 CORS_ORIGIN_ALLOW_ALL = True
-DATABASES = {
-    "default": env.db("DATABASE_URL")
-}
-
-DATABASES["default"]["ATOMIC_REQUESTS"] = True
-DATABASES["default"]["CONN_MAX_AGE"] = env.int("CONN_MAX_AGE", default=60)
-
 # DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-#         'NAME': 'database1',
-#         'USER': 'postgres',
-#         'PASSWORD': 'postgres',
-#         'HOST': 'db',
-#         'PORT': 5432
-#     }
+#     "default": env.db("DATABASE_URL")
 # }
+
+# DATABASES["default"]["ATOMIC_REQUESTS"] = False
+# DATABASES["default"]["CONN_MAX_AGE"] = env.int("CONN_MAX_AGE", default=60)
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': env("RDSNAME"),
+        'USER': env("RDSUSERNAME"),
+        'PASSWORD': env("RDSPASSWORD"),
+        'HOST': env("RDSHOST"),
+        'PORT': 5432
+    }
+}
 
 
 AUTH_USER_MODEL = 'users.CustomUser'
@@ -223,12 +234,18 @@ else:
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
     WHITENOISE_USE_FINDERS = True
     STATIC_HOST = env('DJANGO_STATIC_HOST', default='')
+    STATIC_URL = '/static/'
+    STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static'),]
     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-    STATIC_URL = STATIC_HOST + '/static/'
+    # STATICFILES_FINDER = [
+    #     "django.contrib.staticfiles.finders.FileSystemFinder",
+    #     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
+    # ]
     if DEBUG:
         WHITENOISE_AUTOREFRESH = True
+    
 
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='test@example.com')
+# DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='test@example.com')
 
 import socket
 hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())

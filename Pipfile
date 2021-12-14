@@ -27,6 +27,7 @@ django-environ = "*"
 boto = "*"
 whitenoise = "*"
 django-storages = "*"
+gunicorn = "*"
 
 [dev-packages]
 

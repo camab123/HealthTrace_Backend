@@ -18,13 +18,13 @@ from django.urls import path, include
 from django.conf import settings
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('control-data/', admin.site.urls),
     path('api-auth/', include("rest_framework.urls")),
-    path('api/v1/rest-auth/', include('rest_auth.urls')),
+    #path('api/v1/rest-auth/', include('rest_auth.urls')),
     path('api/v1/health/', include('healthdata.urls')),
 ]
 
-if settings.DEBUG:
+if settings.DEBUG is True:
     import debug_toolbar
     urlpatterns = [
         path('__debug__/', include(debug_toolbar.urls)),

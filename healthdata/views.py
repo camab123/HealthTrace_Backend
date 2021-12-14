@@ -27,7 +27,7 @@ class DoctorDetail(APIView):
 class DoctorSearch(APIView):
     permission_classes = (IsStafforReadOnly,)
     def get(self, request, format=None):
-        search = self.request.query_params.get('search')
+        search = self.request.query_params.get('name')
         query_terms = search.split()
         tsquery = " & ".join(query_terms)
         tsquery += ":*"
@@ -88,7 +88,6 @@ class DoctorSummary(APIView):
 
 class DoctorTransactions(APIView):
     permission_classes = (IsStafforReadOnly,)
-    paginator = TransactionSummaryPaginator
     # @method_decorator(cache_page(CACHE_TTL))
     def get(self, request, doctorid, format=None):
         year = self.request.query_params.get('year')
@@ -98,35 +97,23 @@ class DoctorTransactions(APIView):
         endlim = (int(page_number) * lim_count)
         doctordata = Doctor.objects.get(pk=doctorid)
         if year:
-            #transactioncount = doctordata.transactions.filter(Date__year=year).count()
-            transactions = doctordata.transactions.select_related("Manufacturer").filter(Date__year=year)
+            transactioncount = doctordata.transactions.filter(Date__year=year).count()
+            transactions = doctordata.transactions.select_related("Manufacturer").filter(Date__year=year)[startlim:endlim]
         else:
-            # transactioncount = doctordata.transactions.count()
-            transactions = doctordata.transactions.select_related("Manufacturer")
+            transactioncount = doctordata.transactions.count()
+            transactions = doctordata.transactions.select_related("Manufacturer")[startlim:endlim]
         transactionitems = transactions.prefetch_related("transactionitems")
-        # pagecount = round((transactioncount)/lim_count)
-        # nextpage = int(page_number) + 1
-        # if nextpage > pagecount:
-        #     nextpage = None
-        serializer_class = TransactionsForSummarySerializer(transactionitems, many=True)
-        #paginator = LimitOffsetPagination()
-        #paginator = Paginator(transactionitems , 10)
-        #serializer_class = TransactionsForSummarySerializer(paginator.page(page_number), many=True,  context={'request':request})
-        # print(transactionitems.values(), transactionitems[0].transactionitems.values())
-        # trial = [{'TransactionId': b.TransactionId, 'TransactionItem': [a.Name for a in b.transactionitems.all()]} for b in transactionitems[startlim:endlim]]
-        # print(trial)
-        # serialized = [e.serialize_summary() for e in transactionitems.prefetch_related("transactionitems")[startlim:endlim]]
-        # pagecount = round(len(transactions)/lim_count)
-        # nextpage = int(page_number) + 1
-        # if nextpage > pagecount:
-        #     nextpage = None
-        # data = {
-        #     "DoctorId": doctordata.DoctorId,
-        #     "Transactions": serialized,
-        #     "PageCount": pagecount,
-        #     "nextPage": nextpage
-        # }
-        return Response(serializer_class.data, status=200)
+        pagecount = round((transactioncount)/lim_count)
+        nextpage = int(page_number) + 1
+        if nextpage > pagecount:
+            nextpage = None
+        serialized = [e.serialize_summary() for e in transactionitems.prefetch_related("transactionitems")]
+        data = {
+            "Transactions": serialized,
+            "PageCount": pagecount,
+            "nextPage": nextpage
+        }
+        return Response(data, status=200)
 
 class StateRank(APIView):
     permission_classes = (IsStafforReadOnly,)
