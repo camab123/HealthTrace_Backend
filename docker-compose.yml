@@ -12,21 +12,21 @@ services:
       - 8000:8000
     env_file:
       - .env
-    links:
-      # - db
-      # - redis
-    depends_on:
-      # - db
-      # - redis
-  db:
-    image: postgres:13
-    shm_size: 1g
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=database1
-      - POSTGRES_PASSWORD=postgres
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
+    # links:
+    #   # - db
+    #   # - redis
+    # depends_on:
+    #   # - db
+    #   # - redis
+  # db:
+  #   image: postgres:13
+  #   shm_size: 1g
+  #   environment:
+  #     - POSTGRES_USER=postgres
+  #     - POSTGRES_DB=database1
+  #     - POSTGRES_PASSWORD=postgres
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data/
   # redis:
   #   image: redis
   #   command: "redis-server"
@@ -39,18 +39,18 @@ services:
   # Connect external 8000 (which you can access from browser)
   # with internal port 8000(which will be linked to app port 8000 in configs)
   # Connect local nginx configuration with image configuration
-  nginx:
-    image: nginx
-    hostname: nginx
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./config/nginx:/etc/nginx/conf.d
-    depends_on:
-      - web
+  # nginx:
+  #   image: nginx
+  #   hostname: nginx
+  #   ports:
+  #     - "8000:8000"
+  #   volumes:
+  #     - ./config/nginx:/etc/nginx/conf.d
+  #   depends_on:
+  #     - web
 
-volumes:
-  postgres_data:
+# volumes:
+#   postgres_data:
   # redis_data:
 
 
