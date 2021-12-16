@@ -3,7 +3,7 @@ version: '3.9'
 services:
   web:
     build: .
-    command: gunicorn server.wsgi -b 0.0.0.0:8000
+    command: gunicorn config.wsgi -b 0.0.0.0:8000
     environment: 
       - ENVIRONMENT=development
     volumes:
@@ -13,10 +13,10 @@ services:
     env_file:
       - .env
     links:
-      - db
+      # - db
       # - redis
     depends_on:
-      - db
+      # - db
       # - redis
   db:
     image: postgres:13
@@ -34,6 +34,21 @@ services:
   #     - "14000:6379"
   #   volumes:
   #     - redis_data:/data
+
+  # Web server based on official nginx image
+  # Connect external 8000 (which you can access from browser)
+  # with internal port 8000(which will be linked to app port 8000 in configs)
+  # Connect local nginx configuration with image configuration
+  nginx:
+    image: nginx
+    hostname: nginx
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./config/nginx:/etc/nginx/conf.d
+    depends_on:
+      - web
+
 volumes:
   postgres_data:
   # redis_data:

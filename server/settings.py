@@ -65,7 +65,6 @@ INSTALLED_APPS = [
 
     #local
     'users.apps.UsersConfig',
-    'pages.apps.PagesConfig',
     'healthdata.apps.HealthdataConfig',
 ]
 MIDDLEWARE = [
@@ -92,7 +91,7 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 25
 }
 
-ROOT_URLCONF = 'server.urls'
+ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
     {
@@ -110,7 +109,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'server.wsgi.application'
+WSGI_APPLICATION = 'config.wsgi.application'
 
 
 # Database
