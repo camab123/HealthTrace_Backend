@@ -3,30 +3,28 @@ version: '3.9'
 services:
   web:
     build: .
-    command: gunicorn config.wsgi -b 0.0.0.0:8000
-    environment: 
-      - ENVIRONMENT=development
+    command: gunicorn config.wsgi:application -b 0.0.0.0:8000
     volumes:
       - .:/code
-    ports:
-      - 8000:8000
+      - static_volume:/code/staticfiles
+    expose:
+      - 8000
     env_file:
       - .env
+
+  nginx:
+    build: ./config/nginx
+    volumes:
+      - static_volume:/code/staticfiles
+    ports:
+      - 1337:80
+    depends_on:
+      - web
     # links:
-    #   # - db
     #   # - redis
     # depends_on:
-    #   # - db
     #   # - redis
-  # db:
-  #   image: postgres:13
-  #   shm_size: 1g
-  #   environment:
-  #     - POSTGRES_USER=postgres
-  #     - POSTGRES_DB=database1
-  #     - POSTGRES_PASSWORD=postgres
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data/
+ 
   # redis:
   #   image: redis
   #   command: "redis-server"
@@ -35,26 +33,5 @@ services:
   #   volumes:
   #     - redis_data:/data
 
-  # Web server based on official nginx image
-  # Connect external 8000 (which you can access from browser)
-  # with internal port 8000(which will be linked to app port 8000 in configs)
-  # Connect local nginx configuration with image configuration
-  # nginx:
-  #   image: nginx
-  #   hostname: nginx
-  #   ports:
-  #     - "8000:8000"
-  #   volumes:
-  #     - ./config/nginx:/etc/nginx/conf.d
-  #   depends_on:
-  #     - web
-
-# volumes:
-#   postgres_data:
-  # redis_data:
-
-
-    #AWS CREDS
-    # DB USER: abeelcf
-    # DB PASS: ncDl57PIWiaG41B9mWm1
-    # docker run -it --rm postgres psql --host healthcare-db-1.cs6wxy3pcyxd.us-east-1.rds.amazonaws.com --port 5432 --username abeelcf --dbname postgres
+volumes:
+  static_volume:
