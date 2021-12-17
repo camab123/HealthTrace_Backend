@@ -6,7 +6,7 @@ services:
     command: gunicorn config.wsgi:application -b 0.0.0.0:8000
     volumes:
       - .:/code
-      - static_volume:/code/staticfiles
+      - static_volume:/HealthTrace/staticfiles
     expose:
       - 8000
     env_file:
@@ -15,7 +15,7 @@ services:
   nginx:
     build: ./config/nginx
     volumes:
-      - static_volume:/code/staticfiles
+      - static_volume:/HealthTrace/staticfiles
     ports:
       - 1337:80
     depends_on:

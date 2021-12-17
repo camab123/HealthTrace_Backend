@@ -5,11 +5,11 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 #Set work directory 
-WORKDIR /code
+WORKDIR /HealthTrace
 
 #Install dependencies
-COPY Pipfile Pipfile.lock /code/
+COPY Pipfile Pipfile.lock /HealthTrace/
 RUN pip3 install pipenv && pipenv install --system
 
 #Copy project
-COPY . /code
+COPY . /HealthTrace
