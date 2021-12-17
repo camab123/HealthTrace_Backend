@@ -3,15 +3,22 @@ version: '3.9'
 services:
   web:
     build: .
-    command: gunicorn config.wsgi -b 0.0.0.0:8000
-    environment: 
-      - ENVIRONMENT=development
+    command: gunicorn config.wsgi:application -b 0.0.0.0:8000
     volumes:
       - .:/code
-    ports:
-      - 8000:8000
+      - static_volume:/staticfiles
+    expose:
+      - 8000
     env_file:
       - .env
+  nginx:
+    build: ./config/nginx
+    volumes:
+      - static_volume:/staticfiles
+    ports:
+      - 1337:80
+    depends_on:
+      - web
     # links:
     #   # - db
     #   # - redis
@@ -49,7 +56,8 @@ services:
   #   depends_on:
   #     - web
 
-# volumes:
+volumes:
+  static_volume:
 #   postgres_data:
   # redis_data:
 

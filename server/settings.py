@@ -13,12 +13,10 @@ from pathlib import Path
 import environ
 import os
 
-# Access DB : docker compose exec db psql -U postgres -d database1  
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 env = environ.Env()
-ENVIRONMENT = os.environ.get('ENVIRONMENT', default='production')
+ENVIRONMENT = env('ENVIRONMENT')
 # Quick-start development settings - unsuitabled for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
@@ -32,9 +30,9 @@ if DEBUG is True:
 else:
     ALLOWED_HOSTS = ['*']
     #ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['example.com'])
-
 # Application definition
 if ENVIRONMENT == 'production':
+    print("Running Production Server")
     SECURE_BROWSER_XSS_FILTER = True
     X_FRAME_OPTIONS = 'DENY'
     SECURE_SSL_REDIRECT = True
