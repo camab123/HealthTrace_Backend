@@ -231,9 +231,9 @@ else:
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
     WHITENOISE_USE_FINDERS = True
     STATIC_HOST = env('DJANGO_STATIC_HOST', default='')
-    STATIC_URL = '/static/'
+    STATIC_URL = '/django_static/'
     # STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static'),]
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    STATIC_ROOT = os.path.join(BASE_DIR, 'django_static')
     # STATICFILES_FINDER = [
     #     "django.contrib.staticfiles.finders.FileSystemFinder",
     #     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
