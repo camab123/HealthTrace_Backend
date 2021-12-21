@@ -208,6 +208,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         print("Begin script")
-        self.AddTransactionYear()
+        # self.AddTransactionYear()
     
     
