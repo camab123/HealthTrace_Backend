@@ -24,15 +24,10 @@ ENVIRONMENT = env('ENVIRONMENT')
 SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG")
-if DEBUG is True:
-    # If Debug is True, allow all.
-    ALLOWED_HOSTS = ['*']
-else:
-    ALLOWED_HOSTS = ['*']
-    #ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['example.com'])
+ALLOWED_HOSTS = ['healthtrace.io', 'www.healthtrace.io']
+
 # Application definition
 if ENVIRONMENT == 'production':
-    print("Running Production Server")
     SECURE_BROWSER_XSS_FILTER = True
     X_FRAME_OPTIONS = 'DENY'
     SECURE_SSL_REDIRECT = True
@@ -114,8 +109,8 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
 CORS_ORIGIN_WHITELIST = (
-    'http://localhost:3000',
-    'http://localhost:8000',
+    'http://www.healthtrace.io/'
+    'http://healthtrace.io/'
 )
 CORS_ORIGIN_ALLOW_ALL = True
 # DATABASES = {
@@ -231,9 +226,9 @@ else:
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
     WHITENOISE_USE_FINDERS = True
     STATIC_HOST = env('DJANGO_STATIC_HOST', default='')
-    STATIC_URL = '/static/'
+    STATIC_URL = '/django_static/'
     # STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static'),]
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    STATIC_ROOT = os.path.join(BASE_DIR, 'django_static')
     # STATICFILES_FINDER = [
     #     "django.contrib.staticfiles.finders.FileSystemFinder",
     #     "django.contrib.staticfiles.finders.AppDirectoriesFinder",

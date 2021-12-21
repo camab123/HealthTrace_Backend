@@ -12,19 +12,6 @@ services:
       - 8000
     env_file:
       - .env
-
-  nginx:
-    build: ./config/nginx
-    volumes:
-      - static_volume:/HealthTrace/staticfiles
-    ports:
-      - 1337:80
-    depends_on:
-      - web
-    # links:
-    #   # - redis
-    # depends_on:
-    #   # - redis
  
   # redis:
   #   image: redis
