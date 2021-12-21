@@ -14,7 +14,7 @@ urlpatterns = [
 
     path('state/map/<str:name>/', StateMapData.as_view(), name="StateMap"),
     path('state/summary/<str:name>/', StateSummaryData.as_view(), name="StateSummary"),
-    path('state/summaryopioids/<str:name>', StateOpioidSummary.as_view(), name="StateOpioidSummary"),
+    path('state/summaryopioids/<str:name>/', StateOpioidSummary.as_view(), name="StateOpioidSummary"),
     path('state/ranking/<str:name>/', StateRank.as_view(), name="StateRanking"),
     
     path('manufacturer/', ManufacturersList.as_view(), name="ManufacturerList"),

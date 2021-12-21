@@ -24,7 +24,8 @@ ENVIRONMENT = env('ENVIRONMENT')
 SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG")
-ALLOWED_HOSTS = ['healthtrace.io', 'www.healthtrace.io']
+#ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'healthtrace.io', 'www.healthtrace.io']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'healthtrace.io', 'www.healthtrace.io']
 
 # Application definition
 if ENVIRONMENT == 'production':
@@ -81,7 +82,15 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication'
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 25
+    'PAGE_SIZE': 25,
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.ScopedRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'doctor': '20/min',
+        'search': '150/min',
+        'general': '40/min'
+    }
 }
 
 ROOT_URLCONF = 'config.urls'
@@ -108,17 +117,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
-CORS_ORIGIN_WHITELIST = (
-    'http://www.healthtrace.io/'
-    'http://healthtrace.io/'
-)
+CORS_ORIGIN_WHITELIST = [
+    'http://www.healthtrace.io',
+    'http://healthtrace.io'
+]
 CORS_ORIGIN_ALLOW_ALL = True
-# DATABASES = {
-#     "default": env.db("DATABASE_URL")
-# }
 
-# DATABASES["default"]["ATOMIC_REQUESTS"] = False
-# DATABASES["default"]["CONN_MAX_AGE"] = env.int("CONN_MAX_AGE", default=60)
 
 DATABASES = {
     'default': {
@@ -178,14 +182,14 @@ ADMIN_URL = env('DJANGO_ADMIN_URL', default='admin/')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-REDIS_URL = env('REDIS_URL', default=None)
+# REDIS_URL = env('REDIS_URL', default=None)
 
-if REDIS_URL:
-    CACHES = {
-        "default": env.cache('REDIS_URL')
-    }
+# if REDIS_URL:
+#     CACHES = {
+#         "default": env.cache('REDIS_URL')
+#     }
 
-CACHE_TTL = 60*60
+# CACHE_TTL = 60*60
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 

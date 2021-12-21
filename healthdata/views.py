@@ -11,6 +11,7 @@ from rest_framework.pagination import LimitOffsetPagination
 from .paginations import TransactionSummaryPaginator
 from django.conf import settings
 from django.core.cache.backends.base import DEFAULT_TIMEOUT
+from rest_framework.throttling import ScopedRateThrottle
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 import time
@@ -19,6 +20,7 @@ CACHE_TTL = getattr(settings, 'CACHE_TTL', DEFAULT_TIMEOUT)
 
 class DoctorDetail(APIView):
     permission_classes = (IsStafforReadOnly,)
+    throttle_scope = 'general'
     def get(self, request, doctorid, format=None):
         doctor = Doctor.objects.get(pk=doctorid)
         serialized = doctor.serialize_doc()
@@ -26,10 +28,11 @@ class DoctorDetail(APIView):
 
 class DoctorSearch(APIView):
     permission_classes = (IsStafforReadOnly,)
+    throttle_scope = 'search'
     def get(self, request, format=None):
         search = self.request.query_params.get('name')
         query_terms = search.split()
-        tsquery = " & ".join(query_terms)
+        tsquery = ":* & ".join(query_terms)
         tsquery += ":*"
         page_number = self.request.query_params.get("page", 1)
         startlim = (int(page_number) * 25) - 25
@@ -44,6 +47,7 @@ class DoctorSearch(APIView):
 
 class DoctorList(APIView):
     permission_classes = (IsStafforReadOnly,)
+    throttle_scope = 'search'
     def get(self, request, format=None):
         search = self.request.query_params.get('search')
         query_terms = search.split()
@@ -60,6 +64,7 @@ class DoctorList(APIView):
         return Response(data, status=200)
 
 class DoctorSummary(APIView):
+    throttle_scope = 'doctor'
     permission_classes = (IsStafforReadOnly,)
     # @method_decorator(cache_page(CACHE_TTL))
     def get(self, request, doctorid, format=None):
@@ -88,6 +93,7 @@ class DoctorSummary(APIView):
 
 class DoctorTransactions(APIView):
     permission_classes = (IsStafforReadOnly,)
+    throttle_scope = 'doctor'
     # @method_decorator(cache_page(CACHE_TTL))
     def get(self, request, doctorid, format=None):
         year = self.request.query_params.get('year')
@@ -116,6 +122,7 @@ class DoctorTransactions(APIView):
         return Response(data, status=200)
 
 class StateRank(APIView):
+    throttle_scope = 'general'
     permission_classes = (IsStafforReadOnly,)
     def get(self, request, name, format=None):
         state = State.objects.get(twolettercode=name)
@@ -126,6 +133,7 @@ class StateRank(APIView):
         return Response(data, status=200)
 
 class StateMapData(APIView):
+    throttle_scope = 'general'
     permission_classes = (IsStafforReadOnly,)
     def get(self, request, name, format=None):
         state = State.objects.get(twolettercode=name)
@@ -137,6 +145,7 @@ class StateMapData(APIView):
         return Response(data, status=200)
 
 class StateSummaryData(APIView):
+    throttle_scope = 'general'
     permission_classes = (IsStafforReadOnly,)
     def get(self, request, name, format=None):
         year = self.request.query_params.get('year')
@@ -152,6 +161,7 @@ class StateSummaryData(APIView):
         return Response(data, status=200)
 
 class StateOpioidSummary(APIView):
+    throttle_scope = 'general'
     permission_classes = (IsStafforReadOnly,)
     def get(self, request, name, format=None):
         year = self.request.query_params.get('year')
@@ -167,6 +177,7 @@ class StateOpioidSummary(APIView):
         return Response(data, status=200)
 
 class ManufacturersList(APIView):
+    throttle_scope = 'general'
     permission_classes = (IsStafforReadOnly,)
     def get(self, request, format=None):
         search = self.request.query_params.get('search')
@@ -180,6 +191,7 @@ class ManufacturersList(APIView):
         return Response(serializer.data, status=200)
 
 class ManufacturerDetail(APIView):
+    throttle_scope = 'general'
     permission_classes = (IsStafforReadOnly,)
     def get(self, request, manufacturerid, format=None):
         year = self.request.query_params.get('year')
@@ -188,6 +200,7 @@ class ManufacturerDetail(APIView):
         return Response(serialized, status=200)
 
 class ManufacturerSummary(APIView):
+    throttle_scope = 'general'
     permission_classes = (IsStafforReadOnly,)
     # @method_decorator(cache_page(CACHE_TTL))
     def get(self, request, manufacturerid, format=None):
@@ -213,7 +226,8 @@ class TransactionList(APIView):
         if search:
             queryset = Transaction.objects.filter(TransactionId=search).prefetch_related("transactionitems")
         else:
-            queryset = Transaction.objects.all().prefetch_related("transactionitems")
+            # queryset = Transaction.objects.all().prefetch_related("transactionitems")
+            return Response("Input a transactionid", status=404)
         paginator = Paginator(queryset , 25)
         serializer = TransactionSerializer(paginator.page(page_number), many=True,  context={'request':request})
         return Response(serializer.data, status=200)
